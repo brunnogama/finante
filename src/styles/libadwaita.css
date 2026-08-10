@@ -1,0 +1,419 @@
+/* Fonte Geométrica Moderna: Plus Jakarta Sans */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* V2 Light Theme */
+  --window-bg-color: #F8F9FA;
+  --window-fg-color: #0f172a;
+  
+  --headerbar-bg-color: rgba(255, 255, 255, 0.7);
+  --headerbar-fg-color: #0f172a;
+  --headerbar-border-color: rgba(0, 0, 0, 0.05);
+  
+  --card-bg-color: rgba(255, 255, 255, 0.85);
+  --card-border-color: rgba(0, 0, 0, 0.05);
+  
+  /* Cores V2 (Acentos Premium) */
+  --accent-color: #3B82F6; /* Sapphire Blue */
+  --accent-fg-color: #ffffff;
+  --accent-hover-color: #2563EB;
+  
+  --success-color: #10B981; /* Emerald Green */
+  --warning-color: #F59E0B; /* Amber */
+  --destructive-color: #EF4444; /* Coral Red */
+  
+  --button-bg-color: rgba(0, 0, 0, 0.04);
+  --button-hover-bg-color: rgba(0, 0, 0, 0.08);
+  
+  --border-radius-window: 24px;
+  --border-radius-card: 20px;
+  --border-radius-button: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* V2 Deep Dark Theme */
+    --window-bg-color: #0D0E12;
+    --window-fg-color: #f8fafc;
+    
+    --headerbar-bg-color: rgba(13, 14, 18, 0.75);
+    --headerbar-fg-color: #f8fafc;
+    --headerbar-border-color: rgba(255, 255, 255, 0.04);
+    
+    --card-bg-color: rgba(255, 255, 255, 0.02);
+    --card-border-color: rgba(255, 255, 255, 0.05);
+    
+    --accent-color: #3B82F6; 
+    --accent-fg-color: #ffffff;
+    --accent-hover-color: #60A5FA;
+    
+    --success-color: #10B981;
+    --warning-color: #FBBF24;
+    --destructive-color: #EF4444;
+    
+    --button-bg-color: rgba(255, 255, 255, 0.05);
+    --button-hover-bg-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: var(--window-fg-color);
+  background-color: var(--window-bg-color);
+  overflow: hidden; 
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* HeaderBar */
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 20px;
+  background-color: var(--headerbar-bg-color);
+  color: var(--headerbar-fg-color);
+  border-bottom: 1px solid var(--headerbar-border-color);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  -webkit-app-region: drag; 
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.header-bar-title {
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.header-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+/* Content Container */
+.content-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .content-container {
+    flex-direction: row;
+  }
+}
+
+/* Navigation (Sidebar / Bottom Nav) */
+.app-navigation {
+  display: flex;
+  background-color: var(--headerbar-bg-color);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+/* Mobile Bottom Nav */
+@media (max-width: 767px) {
+  .app-navigation {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    justify-items: center;
+    padding: 8px 16px;
+    margin: 0 16px 24px;
+    border-radius: 24px;
+    background-color: rgba(18, 18, 20, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    order: 2; 
+    position: fixed;
+    bottom: 0;
+    width: calc(100% - 32px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .app-navigation .nav-label {
+    display: none;
+  }
+  .app-navigation .nav-item {
+    flex-direction: column;
+    padding: 10px;
+    border-radius: 16px;
+    color: rgba(255,255,255,0.5);
+    position: relative;
+    background-color: transparent;
+  }
+  .app-navigation .nav-item:hover {
+    background-color: transparent;
+  }
+  .app-navigation .nav-item-active {
+    color: #fff;
+    opacity: 1;
+  }
+  .app-navigation .nav-item-active::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    width: 4px;
+    height: 4px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent-color);
+  }
+  .app-navigation .nav-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    margin-top: -24px;
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5);
+    background-color: var(--accent-color);
+    color: white;
+  }
+  .nav-settings-wrapper {
+    margin-top: 0;
+    width: auto;
+  }
+  .nav-settings-wrapper .btn {
+    width: auto;
+  }
+}
+
+/* Desktop Sidebar */
+@media (min-width: 768px) {
+  .app-navigation {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 260px;
+    border-right: 1px solid var(--headerbar-border-color);
+    padding: 24px 16px;
+    order: 0; 
+  }
+  .app-navigation .btn {
+    justify-content: flex-start;
+    padding: 14px 18px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  
+  /* Indicador Sutil Sidebar Desktop */
+  .app-navigation .nav-item-active {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--accent-color);
+    border-left: 3px solid var(--accent-color);
+    border-radius: 0 12px 12px 0;
+  }
+  
+  .app-navigation .nav-fab {
+    display: none; /* Ocultar FAB no desktop, já que o usuário usa a navegação padrão */
+  }
+  
+  .nav-settings-wrapper {
+    margin-top: auto;
+    display: flex;
+    width: 100%;
+  }
+  .nav-settings-wrapper .btn {
+    width: 100%;
+  }
+}
+
+
+
+/* Main View */
+.main-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  padding-bottom: 100px; /* Espaço para bottom nav */
+  order: 1; 
+}
+
+@media (min-width: 768px) {
+  .main-view {
+    padding: 40px;
+    padding-bottom: 40px;
+  }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-radius: var(--border-radius-button);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--window-fg-color);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:hover {
+  background-color: var(--button-hover-bg-color);
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn-primary {
+  background-color: var(--accent-color);
+  color: var(--accent-fg-color);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-hover-color);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.btn-icon {
+  padding: 10px;
+  border-radius: 50%;
+  background-color: var(--button-bg-color);
+}
+
+/* Cards (Glassmorphism & V2 Aesthetics) */
+.card {
+  background-color: var(--card-bg-color);
+  border-radius: var(--border-radius-card);
+  padding: 24px;
+  border: 1px solid var(--card-border-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.02);
+  margin-bottom: 24px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.04);
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  letter-spacing: -0.4px;
+}
+
+/* Floating Label Inputs */
+.input-group {
+  position: relative;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.input-field {
+  width: 100%;
+  padding: 20px 16px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border-color);
+  background-color: var(--button-bg-color);
+  color: var(--window-fg-color);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: var(--accent-color);
+  background-color: transparent;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.input-label {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--window-fg-color);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+/* When input has focus or has a value (simulated with :not(:placeholder-shown) if possible, but React value tracking is better. Assuming simple css active state for now) */
+.input-field:focus ~ .input-label,
+.input-field:not(:placeholder-shown) ~ .input-label,
+.input-group.has-value .input-label {
+  top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 1;
+  color: var(--accent-color);
+}
+
+/* Empty States */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  opacity: 0.5;
+  text-align: center;
+  height: 100%;
+}
+.empty-state svg {
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+.empty-state p {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Utilities */
+.text-success { color: var(--success-color); }
+.text-warning { color: var(--warning-color); }
+.text-danger { color: var(--destructive-color); }
+
+.flex-row { display: flex; align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.gap-4 { gap: 16px; }
+.mt-4 { margin-top: 16px; }
+
