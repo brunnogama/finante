@@ -189,7 +189,7 @@ export const CalendarView = () => {
               currentMonthExpenses.map((expense) => (
                 <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--card-border-color)', borderRadius: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', marginRight: '8px' }}>
-                    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{expense.name}</span>
+                    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{expense.description}</span>
                     <span style={{ fontSize: '12px', opacity: 0.6 }}>{format(new Date(expense.due_date + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })}</span>
                   </div>
                   <span style={{ fontWeight: 700, color: 'var(--destructive-color)', whiteSpace: 'nowrap' }}>
