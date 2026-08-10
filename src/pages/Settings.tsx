@@ -1,8 +1,14 @@
-
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Wallet, User, Bell, Shield, ChevronRight } from 'lucide-react';
+import { Wallet, User, Bell, Shield, ChevronRight, Sparkles } from 'lucide-react';
+import { PinSetupModal } from '../components/PinSetupModal';
+import { ChangelogModal } from '../components/ChangelogModal';
+import pkg from '../../package.json';
 
 export const Settings = () => {
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
+
   const handleComingSoon = () => {
     alert('Esta área está em desenvolvimento e será liberada em breve!');
   };
@@ -70,7 +76,7 @@ export const Settings = () => {
         </div>
 
         <div 
-          onClick={handleComingSoon}
+          onClick={() => setShowPinModal(true)}
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderTop: '1px solid var(--card-border-color)', cursor: 'pointer' }}
         >
           <div className="flex-row gap-2">
@@ -81,8 +87,26 @@ export const Settings = () => {
           </div>
           <ChevronRight size={20} opacity={0.5} />
         </div>
+
+        <div 
+          onClick={() => setShowChangelog(true)}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderTop: '1px solid var(--card-border-color)', cursor: 'pointer' }}
+        >
+          <div className="flex-row gap-2">
+            <div style={{ backgroundColor: 'rgba(255, 45, 85, 0.1)', color: '#FF2D55', padding: '8px', borderRadius: '8px' }}>
+              <Sparkles size={20} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontWeight: 500 }}>Novidades</span>
+              <span style={{ fontSize: '12px', opacity: 0.6 }}>Versão {pkg.version}</span>
+            </div>
+          </div>
+          <ChevronRight size={20} opacity={0.5} />
+        </div>
       </div>
       
+      {showPinModal && <PinSetupModal onClose={() => setShowPinModal(false)} />}
+      {showChangelog && <ChangelogModal currentVersion={pkg.version} onClose={() => setShowChangelog(false)} />}
     </div>
   );
 };

@@ -61,8 +61,16 @@ export const CalendarView = () => {
 
 
 
+  const currentMonthExpenses = expenses
+    .filter(e => {
+      // Fix timezone parsing issue by appending time
+      const d = new Date(e.due_date + 'T00:00:00');
+      return isSameMonth(d, monthStart);
+    })
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+
   return (
-    <div style={{ animation: 'fadeIn 0.3s ease' }}>
+    <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="flex-row justify-between" style={{ marginBottom: '24px' }}>
         <h2>Calendário</h2>
         <div className="flex-row gap-2">
@@ -78,91 +86,123 @@ export const CalendarView = () => {
         </div>
       </div>
 
-      <div className="card" style={{ padding: '16px' }}>
-        {/* Days of week header */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(7, 1fr)', 
-          textAlign: 'center',
-          fontWeight: 600,
-          fontSize: '12px',
-          opacity: 0.7,
-          marginBottom: '12px'
-        }}>
-          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-            <div key={day}>{day}</div>
-          ))}
+      <div style={{ display: 'flex', gap: '24px', flex: 1, alignItems: 'flex-start' }}>
+        {/* Calendar Area */}
+        <div className="card" style={{ padding: '16px', flex: '2' }}>
+          {/* Days of week header */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(7, 1fr)', 
+            textAlign: 'center',
+            fontWeight: 600,
+            fontSize: '12px',
+            opacity: 0.7,
+            marginBottom: '12px'
+          }}>
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+              <div key={day}>{day}</div>
+            ))}
+          </div>
+
+          {/* Calendar Grid */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '8px'
+          }}>
+            {calendarDays.map((day) => {
+              const dayKey = format(day, dateFormat);
+              const isCurrentMonth = isSameMonth(day, monthStart);
+              const isDayToday = isToday(day);
+              const totalSpent = expensesByDate[dayKey] || 0;
+
+              return (
+                <div 
+                  key={day.toString()} 
+                  style={{
+                    minHeight: '80px',
+                    padding: '6px',
+                    borderRadius: '16px',
+                    border: '1px solid var(--card-border-color)',
+                    backgroundColor: isCurrentMonth ? 'var(--button-bg-color)' : 'transparent',
+                    opacity: isCurrentMonth ? 1 : 0.4,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ 
+                    fontWeight: isDayToday ? 800 : 600,
+                    fontSize: '14px',
+                    marginBottom: '6px',
+                    color: isDayToday ? '#fff' : 'inherit',
+                    backgroundColor: isDayToday ? 'var(--accent-color)' : 'transparent',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    boxShadow: isDayToday ? '0 4px 12px rgba(59, 130, 246, 0.4)' : 'none'
+                  }}>
+                    {format(day, 'd')}
+                  </span>
+                  
+                  {totalSpent > 0 && (
+                    <div style={{
+                      marginTop: 'auto',
+                      backgroundColor: 'rgba(224, 27, 36, 0.1)',
+                      color: 'var(--destructive-color)',
+                      padding: '2px 4px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      width: '100%',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {totalSpent < 1000 ? `R$ ${totalSpent.toFixed(0)}` : `R$ ${(totalSpent/1000).toFixed(1)}k`}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Calendar Grid */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '8px'
+        {/* Side List Area */}
+        <div className="card" style={{ 
+          padding: '16px', 
+          flex: '1', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          maxHeight: 'calc(100vh - 200px)',
+          overflowY: 'auto'
         }}>
-          {calendarDays.map((day) => {
-            const dayKey = format(day, dateFormat);
-            const isCurrentMonth = isSameMonth(day, monthStart);
-            const isDayToday = isToday(day);
-            const totalSpent = expensesByDate[dayKey] || 0;
-
-            return (
-              <div 
-                key={day.toString()} 
-                style={{
-                  minHeight: '80px',
-                  padding: '6px',
-                  borderRadius: '16px',
-                  border: '1px solid var(--card-border-color)',
-                  backgroundColor: isCurrentMonth ? 'var(--button-bg-color)' : 'transparent',
-                  opacity: isCurrentMonth ? 1 : 0.4,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}
-              >
-                <span style={{ 
-                  fontWeight: isDayToday ? 800 : 600,
-                  fontSize: '14px',
-                  marginBottom: '6px',
-                  color: isDayToday ? '#fff' : 'inherit',
-                  backgroundColor: isDayToday ? 'var(--accent-color)' : 'transparent',
-                  width: '28px',
-                  height: '28px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  boxShadow: isDayToday ? '0 4px 12px rgba(59, 130, 246, 0.4)' : 'none'
-                }}>
-                  {format(day, 'd')}
-                </span>
-                
-                {totalSpent > 0 && (
-                  <div style={{
-                    marginTop: 'auto',
-                    backgroundColor: 'rgba(224, 27, 36, 0.1)',
-                    color: 'var(--destructive-color)',
-                    padding: '2px 4px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    width: '100%',
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}>
-                    {totalSpent < 1000 ? `R$ ${totalSpent.toFixed(0)}` : `R$ ${(totalSpent/1000).toFixed(1)}k`}
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px' }}>Despesas do Mês</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {currentMonthExpenses.length === 0 ? (
+              <p style={{ opacity: 0.6, textAlign: 'center', margin: '32px 0' }}>Nenhuma despesa para este mês.</p>
+            ) : (
+              currentMonthExpenses.map((expense) => (
+                <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--card-border-color)', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', marginRight: '8px' }}>
+                    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{expense.name}</span>
+                    <span style={{ fontSize: '12px', opacity: 0.6 }}>{format(new Date(expense.due_date + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })}</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  <span style={{ fontWeight: 700, color: 'var(--destructive-color)', whiteSpace: 'nowrap' }}>
+                    R$ {expense.amount.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
       
-      {loading && <p>Atualizando dados...</p>}
+      {loading && <p style={{ marginTop: '16px', opacity: 0.7 }}>Atualizando dados...</p>}
     </div>
   );
 };
