@@ -6,8 +6,6 @@ interface IncomeExpenseBarChartProps {
 }
 
 export const IncomeExpenseBarChart = ({ incomes, expenses }: IncomeExpenseBarChartProps) => {
-  // Aggregate by month (simplification for MVP: just sum everything for the "Atual" category)
-  // In a real app, group by 'yyyy-MM'
   const totalIncome = incomes.reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpense = expenses.reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -21,39 +19,66 @@ export const IncomeExpenseBarChart = ({ incomes, expenses }: IncomeExpenseBarCha
 
   if (totalIncome === 0 && totalExpense === 0) {
     return (
-      <div className="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="20" x2="18" y2="10"></line>
-          <line x1="12" y1="20" x2="12" y2="4"></line>
-          <line x1="6" y1="20" x2="6" y2="14"></line>
+      <div className="flex flex-col items-center justify-center h-full opacity-40 text-zinc-500 dark:text-zinc-400">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-3">
+          <path d="M3 3v18h18" />
+          <path d="M18 17V9" />
+          <path d="M13 17V5" />
+          <path d="M8 17v-3" />
         </svg>
-        <p>Nenhum dado cadastrado</p>
+        <p className="text-sm font-semibold tracking-wide">Nenhum dado cadastrado</p>
       </div>
     );
   }
 
+  const formatYAxis = (tickItem: number) => {
+    if (tickItem === 0) return '0';
+    return `${(tickItem / 1000).toFixed(0)}k`;
+  };
+
   return (
-    <div style={{ width: '100%', height: 'calc(100% - 30px)' }}>
+    <div className="w-full h-full absolute inset-0 pb-6 px-1">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{
-            top: 20,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
+          margin={{ top: 20, right: 10, left: -15, bottom: 0 }}
+          barGap={8}
         >
-          <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-          <XAxis dataKey="name" stroke="var(--window-fg-color)" opacity={0.5} />
-          <YAxis stroke="var(--window-fg-color)" opacity={0.5} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#a1a1aa" opacity={0.15} />
+          <XAxis 
+            dataKey="name" 
+            stroke="#a1a1aa" 
+            fontSize={12} 
+            fontWeight={600}
+            tickLine={false} 
+            axisLine={false} 
+            dy={10} 
+          />
+          <YAxis 
+            stroke="#a1a1aa" 
+            fontSize={12} 
+            fontWeight={600}
+            tickLine={false} 
+            axisLine={false} 
+            tickFormatter={formatYAxis} 
+          />
           <Tooltip 
             formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`}
-            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'var(--card-bg-color)', color: 'var(--window-fg-color)' }}
+            cursor={{ fill: '#a1a1aa', opacity: 0.1 }}
+            contentStyle={{ 
+              borderRadius: '16px', 
+              border: '1px solid rgba(161, 161, 170, 0.2)', 
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)', 
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              padding: '12px 16px',
+              fontWeight: 600,
+            }}
           />
-          <Legend />
-          <Bar dataKey="Receitas" fill="#34C759" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Despesas" fill="#FF3B30" radius={[4, 4, 0, 0]} />
+          <Legend iconType="circle" wrapperStyle={{ paddingTop: '16px', fontSize: '13px', fontWeight: 600, color: '#71717a' }} />
+          <Bar dataKey="Receitas" fill="#30D158" radius={[8, 8, 0, 0]} maxBarSize={32} />
+          <Bar dataKey="Despesas" fill="#FF453A" radius={[8, 8, 0, 0]} maxBarSize={32} />
         </BarChart>
       </ResponsiveContainer>
     </div>

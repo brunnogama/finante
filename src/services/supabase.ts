@@ -66,3 +66,22 @@ export const addIncome = async (income: IncomeRecord) => {
   if (error) console.error('Error adding income:', error);
   return data;
 };
+
+export const updateExpense = async (id: number, expense: Partial<ExpenseRecord>) => {
+  const { data, error } = await supabase
+    .from('expenses')
+    .update(expense)
+    .eq('id', id)
+    .select();
+  if (error) console.error('Error updating expense:', error);
+  return data;
+};
+
+export const deleteExpense = async (id: number) => {
+  const { data, error } = await supabase
+    .from('expenses')
+    .delete()
+    .eq('id', id);
+  if (error) console.error('Error deleting expense:', error);
+  return data;
+};
