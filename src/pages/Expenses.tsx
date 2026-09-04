@@ -564,116 +564,116 @@ export const Expenses: React.FC = () => {
   }, [companies, company]);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn pb-24 md:pb-8">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-8">
       
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Receipt size={20} strokeWidth={2.3} />
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-[#e5a50a]/10 dark:bg-[#e5a50a]/20 text-[#e5a50a] flex items-center justify-center shrink-0">
+              <Receipt size={18} strokeWidth={2.3} />
             </span>
             Despesas
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
             Controle de contas a pagar, fornecedores e vencimentos
           </p>
         </div>
 
         <button
           onClick={handleOpenNewModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+          className="adw-btn suggested-action"
         >
-          <Plus size={18} strokeWidth={2.5} />
+          <Plus size={16} strokeWidth={2.5} />
           <span>Nova Despesa</span>
         </button>
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         
         {/* Card 1: Total Despesas */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
-          <div className="flex items-center justify-between mb-2 sm:mb-3 min-w-0">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+        <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Total Despesas
             </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <Receipt size={17} strokeWidth={2.5} />
+            <div className="w-7 h-7 rounded-lg bg-[#e5a50a]/10 dark:bg-[#e5a50a]/20 text-[#e5a50a] flex items-center justify-center shrink-0">
+              <Receipt size={15} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-zinc-900 dark:text-white tracking-tight truncate min-w-0" title={formatCurrency(stats.totalExpenses)}>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tracking-tight truncate min-w-0" title={formatCurrency(stats.totalExpenses)}>
             {formatCurrency(stats.totalExpenses)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
             {stats.count} {stats.count === 1 ? 'conta cadastrada' : 'contas cadastradas'}
           </div>
         </div>
 
         {/* Card 2: Receita do Mês */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
-          <div className="flex items-center justify-between mb-2 sm:mb-3 min-w-0">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+        <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Receita do Mês
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Wallet size={17} strokeWidth={2.5} />
+            <div className="w-7 h-7 rounded-lg bg-[#2ec27e]/10 dark:bg-[#2ec27e]/20 text-[#2ec27e] flex items-center justify-center shrink-0">
+              <Wallet size={15} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight truncate min-w-0" title={formatCurrency(stats.totalIncome)}>
+          <div className="text-xl sm:text-2xl font-bold text-[#2ec27e] tracking-tight truncate min-w-0" title={formatCurrency(stats.totalIncome)}>
             {formatCurrency(stats.totalIncome)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
             {selectedMonth === 'all' ? 'Total acumulado' : formatMonthLabel(selectedMonth)}
           </div>
         </div>
 
         {/* Card 3: Sobra Estimada (Receitas - Despesas) */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
-          <div className="flex items-center justify-between mb-2 sm:mb-3 min-w-0">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+        <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Sobra Prevista
             </span>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
               stats.remainingAfterAllExpenses >= 0
-                ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                ? 'bg-[#2ec27e]/10 dark:bg-[#2ec27e]/20 text-[#2ec27e]'
+                : 'bg-[#e01b24]/10 dark:bg-[#e01b24]/20 text-[#e01b24]'
             }`}>
-              <PiggyBank size={17} strokeWidth={2.5} />
+              <PiggyBank size={15} strokeWidth={2.5} />
             </div>
           </div>
-          <div className={`text-xl sm:text-2xl xl:text-3xl font-bold tracking-tight truncate min-w-0 ${
+          <div className={`text-xl sm:text-2xl font-bold tracking-tight truncate min-w-0 ${
             stats.remainingAfterAllExpenses >= 0 
-              ? 'text-emerald-600 dark:text-emerald-400' 
-              : 'text-rose-600 dark:text-rose-400'
+              ? 'text-[#2ec27e]' 
+              : 'text-[#e01b24]'
           }`} title={formatCurrency(stats.remainingAfterAllExpenses)}>
             {stats.remainingAfterAllExpenses >= 0 ? '+' : ''}{formatCurrency(stats.remainingAfterAllExpenses)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
             {stats.remainingAfterAllExpenses >= 0 ? 'Após quitar todas as despesas' : 'Déficit previsto após quitar tudo'}
           </div>
         </div>
 
         {/* Card 4: Saldo Devedor / Pendente */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
-          <div className="flex items-center justify-between mb-2 sm:mb-3 min-w-0">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+        <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Saldo a Pagar
             </span>
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
               stats.totalBalance > 0
-                ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                : 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                ? 'bg-[#e5a50a]/10 dark:bg-[#e5a50a]/20 text-[#e5a50a]'
+                : 'bg-[#2ec27e]/10 dark:bg-[#2ec27e]/20 text-[#2ec27e]'
             }`}>
-              {stats.totalBalance > 0 ? <Clock size={17} strokeWidth={2.5} /> : <CheckCircle2 size={17} strokeWidth={2.5} />}
+              {stats.totalBalance > 0 ? <Clock size={15} strokeWidth={2.5} /> : <CheckCircle2 size={15} strokeWidth={2.5} />}
             </div>
           </div>
-          <div className={`text-xl sm:text-2xl xl:text-3xl font-bold tracking-tight truncate min-w-0 ${
-            stats.totalBalance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+          <div className={`text-xl sm:text-2xl font-bold tracking-tight truncate min-w-0 ${
+            stats.totalBalance > 0 ? 'text-[#e5a50a]' : 'text-[#2ec27e]'
           }`} title={formatCurrency(stats.totalBalance)}>
             {formatCurrency(stats.totalBalance)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
             {stats.totalBalance === 0 
               ? 'Todas as contas quitadas' 
               : `${formatCurrency(stats.totalPaid)} já pago (${stats.totalExpenses > 0 ? ((stats.totalPaid / stats.totalExpenses) * 100).toFixed(0) : 0}%)`}
@@ -683,24 +683,24 @@ export const Expenses: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 border border-zinc-200/70 dark:border-white/10 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between relative z-20">
+      <div className="bg-white dark:bg-white/[0.06] rounded-xl p-3 border border-black/10 dark:border-white/10 shadow-xs flex flex-col md:flex-row gap-2.5 items-center justify-between relative z-20">
         
         {/* Search */}
         <div className="relative w-full md:w-72">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar por empresa ou tipo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl pl-9 pr-8 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+            className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg pl-8.5 pr-7 py-1.5 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/30 transition-all"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
@@ -713,33 +713,33 @@ export const Expenses: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-              className="flex items-center justify-between gap-2 px-3.5 py-2 bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
+              className="flex items-center justify-between gap-2 px-3 py-1.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-black/10 dark:hover:bg-white/10 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-1.5">
                 <Calendar size={13} className="text-zinc-400" />
                 <span>{formatMonthLabel(selectedMonth)}</span>
               </div>
-              <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={13} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isMonthDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-60 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl shadow-xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
+              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-60 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
                 <button
                   onClick={() => {
                     setSelectedMonth('all');
                     setIsMonthDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2 text-xs text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
                     selectedMonth === 'all' 
-                      ? 'font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15' 
+                      ? 'font-bold text-white bg-[#3584e4]' 
                       : 'text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
                   <span>Todos os Meses</span>
-                  {selectedMonth === 'all' && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                  {selectedMonth === 'all' && <Check size={14} className="text-white" />}
                 </button>
                 
-                <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-1" />
+                <div className="h-px bg-black/5 dark:bg-white/10 my-1" />
 
                 {availableMonths.map((m) => (
                   <button
@@ -748,14 +748,14 @@ export const Expenses: React.FC = () => {
                       setSelectedMonth(m);
                       setIsMonthDropdownOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3.5 py-2 text-xs text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
                       selectedMonth === m 
-                        ? 'font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15' 
+                        ? 'font-bold text-white bg-[#3584e4]' 
                         : 'text-zinc-700 dark:text-zinc-300'
                     }`}
                   >
                     <span>{formatMonthLabel(m)}</span>
-                    {selectedMonth === m && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                    {selectedMonth === m && <Check size={14} className="text-white" />}
                   </button>
                 ))}
               </div>
@@ -767,31 +767,31 @@ export const Expenses: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              className="bg-zinc-100/80 hover:bg-zinc-200/80 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 text-zinc-800 dark:text-zinc-200 border border-zinc-200/80 dark:border-zinc-700/60 text-xs font-semibold rounded-xl px-3.5 py-2 outline-none flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              className="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 border border-black/10 dark:border-white/10 text-xs font-semibold rounded-lg px-3 py-1.5 outline-none flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Tag size={13} className="text-zinc-400" />
               <span>{selectedCategory === 'Todas' ? 'Todas Categorias' : selectedCategory}</span>
-              <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={13} className={`text-zinc-400 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isCategoryDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl p-1.5 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
+              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-56 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl p-1 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedCategory('Todas');
                     setIsCategoryDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
                     selectedCategory === 'Todas' 
-                      ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold' 
-                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      ? 'bg-[#3584e4] text-white font-bold' 
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                   }`}
                 >
                   <span>Todas Categorias</span>
-                  {selectedCategory === 'Todas' && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                  {selectedCategory === 'Todas' && <Check size={14} className="text-white" />}
                 </button>
-                <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
+                <div className="my-1 border-t border-black/5 dark:border-white/10" />
                 {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
                   <button
                     key={cat}
@@ -800,59 +800,43 @@ export const Expenses: React.FC = () => {
                       setSelectedCategory(cat);
                       setIsCategoryDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
                       selectedCategory === cat 
-                        ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold' 
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                        ? 'bg-[#3584e4] text-white font-bold' 
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                     }`}
                   >
                     <span>{cat}</span>
-                    {selectedCategory === cat && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                    {selectedCategory === cat && <Check size={14} className="text-white" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Status Filter Pill */}
-          <div className="flex bg-zinc-100/80 dark:bg-zinc-800/60 p-1 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60 text-xs font-semibold">
+          {/* Status Filter Pill (Libadwaita ViewSwitcher style) */}
+          <div className="adw-view-switcher">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                statusFilter === 'all' 
-                  ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-xs' 
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-              }`}
+              className={`adw-view-switcher-item ${statusFilter === 'all' ? 'active' : ''}`}
             >
               Todas
             </button>
             <button
               onClick={() => setStatusFilter('pending')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                statusFilter === 'pending' 
-                  ? 'bg-white dark:bg-zinc-700 text-amber-600 dark:text-amber-400 shadow-xs' 
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-              }`}
+              className={`adw-view-switcher-item ${statusFilter === 'pending' ? 'active' : ''}`}
             >
               Pendentes
             </button>
             <button
               onClick={() => setStatusFilter('partial')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                statusFilter === 'partial' 
-                  ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs' 
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-              }`}
+              className={`adw-view-switcher-item ${statusFilter === 'partial' ? 'active' : ''}`}
             >
               Parciais
             </button>
             <button
               onClick={() => setStatusFilter('paid')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                statusFilter === 'paid' 
-                  ? 'bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-xs' 
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-              }`}
+              className={`adw-view-switcher-item ${statusFilter === 'paid' ? 'active' : ''}`}
             >
               Pagas
             </button>
@@ -1103,21 +1087,21 @@ export const Expenses: React.FC = () => {
       {/* EXPENSE DETAIL MODAL */}
       {/* ========================================================================= */}
       {selectedExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div 
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150 overflow-hidden flex flex-col"
+            className="adw-dialog max-w-lg w-full p-6 shadow-2xl animate-scaleIn overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
+            <div className="flex items-start justify-between pb-4 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center gap-3">
-                <CategoryIcon type={selectedExpense.type} size={24} containerClassName="w-12 h-12 rounded-2xl shadow-xs" />
+                <CategoryIcon type={selectedExpense.type} size={24} containerClassName="w-11 h-11 rounded-xl shadow-xs" />
                 <div>
                   <h3 className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white leading-tight">
                     {selectedExpense.company || selectedExpense.description}
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300">
                       {selectedExpense.type}
                     </span>
                     {(() => {
@@ -1137,7 +1121,7 @@ export const Expenses: React.FC = () => {
 
               <button 
                 onClick={() => setSelectedExpense(null)}
-                className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -1147,7 +1131,7 @@ export const Expenses: React.FC = () => {
             <div className="py-5 space-y-4">
               
               {/* Financial Breakdown Grid */}
-              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/50">
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
                     Valor a Pagar
@@ -1161,21 +1145,22 @@ export const Expenses: React.FC = () => {
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
                     Valor Pago
                   </span>
-                  <span className="text-sm md:text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                  <span className="text-sm md:text-base font-bold tabular-nums text-[#2ec27e] mt-0.5 block">
                     {formatCurrency(Number(selectedExpense.paid_amount || 0))}
                   </span>
                 </div>
 
                 <div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-                    Saldo
+                    Restante
                   </span>
-                  <span className={`text-sm md:text-base font-bold tabular-nums mt-0.5 block ${
-                    (Number(selectedExpense.amount || 0) - Number(selectedExpense.paid_amount || 0)) <= 0 
-                      ? 'text-emerald-600 dark:text-emerald-400' 
-                      : 'text-rose-600 dark:text-rose-400'
-                  }`}>
-                    {formatCurrency(Math.max(0, Number(selectedExpense.amount || 0) - Number(selectedExpense.paid_amount || 0)))}
+                  <span className="text-sm md:text-base font-bold tabular-nums text-[#e01b24] mt-0.5 block">
+                    {(() => {
+                      const amount = Number(selectedExpense.amount || 0);
+                      const paid = Number(selectedExpense.paid_amount || 0);
+                      const remaining = Math.max(0, amount - paid);
+                      return formatCurrency(remaining);
+                    })()}
                   </span>
                 </div>
               </div>
@@ -1996,17 +1981,17 @@ export const Expenses: React.FC = () => {
               </div>
 
               {/* Actions Footer */}
-              <div className="flex gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="flex gap-3 pt-3 border-t border-black/5 dark:border-white/5">
                 <button 
                   type="button"
                   onClick={() => setIsFormModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="adw-btn flex-1 py-2.5 text-xs font-semibold cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all cursor-pointer"
+                  className="adw-btn suggested-action flex-1 py-2.5 text-xs font-semibold cursor-pointer"
                 >
                   {editingId ? 'Salvar Alterações' : 'Cadastrar Despesa'}
                 </button>
@@ -2021,14 +2006,14 @@ export const Expenses: React.FC = () => {
       {/* DOCUMENT PREVIEW MODAL */}
       {/* ========================================================================= */}
       {previewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
           <div 
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]"
+            className="adw-dialog max-w-2xl w-full p-6 shadow-2xl animate-scaleIn flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/5">
               <div className="flex items-center gap-2.5 truncate">
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-[#3584e4]/10 text-[#3584e4] flex items-center justify-center shrink-0">
                   <FileText size={18} />
                 </div>
                 <div className="truncate">
@@ -2046,14 +2031,14 @@ export const Expenses: React.FC = () => {
                   download={previewDoc.name}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="adw-btn text-xs font-semibold px-3 py-1.5 inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download size={14} />
                   <span>Baixar</span>
                 </a>
                 <button 
                   onClick={() => setPreviewDoc(null)}
-                  className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X size={18} />
                 </button>

@@ -19,10 +19,16 @@ interface ChangelogEntry {
 
 const BUILTIN_CHANGELOG: ChangelogEntry[] = [
   {
+    sha: 'ad50fed',
+    date: '2026-09-04T19:15:00Z',
+    title: '🎨 Migração Completa para GNOME 50 / Libadwaita (GTK4)',
+    description: 'Design 100% nativo para Fedora Linux com Libadwaita HIG: HeaderBar, Boxed Lists, ActionRows, ViewSwitcher, Dialogs, palette de cores oficial (Blue #3584e4, Green #2ec27e, Red #e01b24, Amber #e5a50a, Purple #9141ac) e integração total com Supabase.'
+  },
+  {
     sha: '4d8e92a',
     date: '2026-09-04T18:20:00Z',
-    title: '📅 Novo Seletor de Data Apple HIG & Ordem Alfabética',
-    description: 'Seletor de data moderno com fechamento automático ao clicar na data, glassmorphism e menus suspensos 100% em ordem alfabética.'
+    title: '📅 Seletor de Data & Ordem Alfabética',
+    description: 'Seletor de data moderno com fechamento automático ao clicar na data e menus suspensos 100% em ordem alfabética.'
   },
   {
     sha: '9ab217f',
@@ -165,27 +171,27 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-[scaleIn_0.15s_ease]">
+      <div className="adw-dialog max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-scaleIn">
         
         {/* Header */}
-        <div className="p-6 border-b border-zinc-100 dark:border-zinc-800/80 relative">
+        <div className="p-5 border-b border-black/5 dark:border-white/5 relative">
           <button 
             onClick={onClose}
-            className="absolute top-5 right-5 p-2 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
 
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <Sparkles size={24} strokeWidth={2.2} />
+            <div className="w-11 h-11 rounded-xl bg-[#3584e4]/10 text-[#3584e4] flex items-center justify-center shrink-0">
+              <Sparkles size={22} strokeWidth={2.2} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">
                   Novidades & Atualizações
                 </h3>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#3584e4]/15 text-[#3584e4]">
                   v{currentVersion}
                 </span>
               </div>
@@ -198,10 +204,10 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
 
         {/* Update Banner */}
         {availableUpdate ? (
-          <div className="p-4 bg-gradient-to-r from-blue-500/15 via-indigo-500/10 to-emerald-500/15 border-b border-blue-500/20 flex flex-col gap-3">
+          <div className="p-4 bg-[#3584e4]/10 border-b border-[#3584e4]/20 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <ArrowUpCircle size={20} className="text-blue-500 shrink-0 animate-bounce" />
+                <ArrowUpCircle size={20} className="text-[#3584e4] shrink-0 animate-bounce" />
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
                     Nova versão disponível: v{availableUpdate.version}
@@ -216,8 +222,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
                 <button
                   type="button"
                   onClick={handleInstallNativeUpdate}
-                  style={{ backgroundColor: '#007AFF' }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white font-bold text-xs shadow-md hover:opacity-95 active:scale-95 transition-all shrink-0 cursor-pointer"
+                  className="adw-btn suggested-action text-xs font-semibold px-3.5 py-1.5 inline-flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <DownloadCloud size={14} />
                   <span>Atualizar Agora</span>
@@ -232,9 +237,9 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
                   <span>{updateStatusText}</span>
                   <span>{updateProgress}%</span>
                 </div>
-                <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out"
+                    className="h-full bg-[#3584e4] rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${Math.max(5, updateProgress)}%` }}
                   />
                 </div>
@@ -242,16 +247,16 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
             )}
 
             {updateError && (
-              <div className="flex items-center gap-2 text-rose-500 text-xs font-semibold">
+              <div className="flex items-center gap-2 text-[#e01b24] text-xs font-semibold">
                 <AlertCircle size={14} />
                 <span>{updateError}</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="px-6 py-3.5 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-3">
+          <div className="px-5 py-3 bg-black/[0.02] dark:bg-white/[0.03] border-b border-black/5 dark:border-white/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+              <CheckCircle2 size={16} className="text-[#2ec27e] shrink-0" />
               <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">
                 {isUpdating ? updateStatusText : `Você está na versão mais recente (v${currentVersion})`}
               </span>
@@ -261,7 +266,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
               type="button"
               onClick={handleReloadApp}
               disabled={isUpdating}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:opacity-95 active:scale-95 transition-all shrink-0 cursor-pointer disabled:opacity-50"
+              className="adw-btn text-xs font-semibold px-3 py-1.5 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
             >
               <RefreshCw size={13} className={isUpdating ? 'animate-spin' : ''} />
               <span>{isUpdating ? 'Recarregando...' : 'Recarregar App'}</span>
@@ -270,29 +275,29 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
         )}
 
         {/* Content - Changelog List */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-3">
+        <div className="p-5 overflow-y-auto flex-1 space-y-2.5">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-zinc-400 dark:text-zinc-500">
-              <RefreshCw size={28} className="animate-spin mb-3 text-blue-500" />
-              <p className="text-sm font-semibold">Consultando notas de atualização...</p>
+              <RefreshCw size={24} className="animate-spin mb-3 text-[#3584e4]" />
+              <p className="text-xs font-semibold">Consultando notas de atualização...</p>
             </div>
           ) : (
             entries.map((c) => (
               <div 
                 key={c.sha} 
-                className="p-3.5 rounded-2xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium">
-                    <Clock size={13} />
+                  <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">
+                    <Clock size={12} />
                     <span>{format(new Date(c.date), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })}</span>
                   </div>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-200/70 dark:bg-zinc-700/60 text-zinc-600 dark:text-zinc-300 font-bold">
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 font-bold">
                     {c.sha.substring(0, 7)}
                   </span>
                 </div>
 
-                <p className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-100 leading-snug">
+                <p className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-100 leading-snug">
                   {c.title}
                 </p>
                 {c.description && (
@@ -306,14 +311,14 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-zinc-50/50 dark:bg-zinc-800/20 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between">
-          <span className="text-xs text-zinc-400">
+        <div className="p-3.5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex items-center justify-between">
+          <span className="text-[11px] text-zinc-400">
             Repositório: brunnogama/finante
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            className="adw-btn text-xs font-semibold px-4 py-1.5 cursor-pointer"
           >
             Fechar
           </button>

@@ -195,10 +195,10 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
   const userAvatar = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
 
   return (
-    <div className="fixed inset-0 bg-[#000000] text-white flex flex-col items-center justify-center p-6 z-[9999] select-none animate-fadeIn">
+    <div className="fixed inset-0 bg-[#1e1e1e] text-white flex flex-col items-center justify-center p-6 z-[9999] select-none animate-fadeIn">
       {/* Background glowing ambient light */}
-      <div className="absolute w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none -top-20 -left-20"></div>
-      <div className="absolute w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none -bottom-20 -right-20"></div>
+      <div className="absolute w-[500px] h-[500px] bg-[#3584e4]/10 rounded-full blur-[120px] pointer-events-none -top-20 -left-20"></div>
+      <div className="absolute w-[500px] h-[500px] bg-[#2ec27e]/10 rounded-full blur-[120px] pointer-events-none -bottom-20 -right-20"></div>
 
       {/* =========================================================================
           STEP 1: WELCOME & GOOGLE LOGIN
@@ -206,9 +206,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
       {step === 'welcome' && (
         <div className="w-full max-w-sm flex flex-col items-center text-center relative z-10 animate-scaleIn">
           {/* Finante Logo */}
-          <div className="w-20 h-20 rounded-3xl bg-zinc-900/90 border border-white/15 shadow-2xl flex items-center justify-center mb-6 text-blue-400 relative group">
+          <div className="w-20 h-20 rounded-3xl bg-[#2a2a2a] border border-white/10 shadow-2xl flex items-center justify-center mb-6 text-[#3584e4] relative group">
             <img src="/finante.png" alt="Finante" className="w-12 h-12 object-contain" onError={(e) => {
-              // fallback if image not found
               (e.target as HTMLElement).style.display = 'none';
             }} />
           </div>
@@ -234,7 +233,6 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
               </>
             ) : (
               <>
-                {/* Official Google 'G' Logo */}
                 <svg width="20" height="20" viewBox="0 0 24 24" className="shrink-0">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -256,7 +254,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
           </button>
 
           {errorMsg && (
-            <p className="text-xs font-semibold text-rose-400 mt-4 animate-fadeIn">
+            <p className="text-xs font-semibold text-[#e01b24] mt-4 animate-fadeIn">
               {errorMsg}
             </p>
           )}
@@ -276,20 +274,20 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                 <img 
                   src={userAvatar} 
                   alt={userName || 'Perfil'} 
-                  className="w-20 h-20 rounded-3xl object-cover border-2 border-white/20 shadow-2xl ring-4 ring-blue-500/20"
+                  className="w-20 h-20 rounded-3xl object-cover border-2 border-white/20 shadow-2xl ring-4 ring-[#3584e4]/20"
                 />
-                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-xl bg-zinc-900 border border-white/20 flex items-center justify-center text-emerald-400 shadow-md">
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-xl bg-[#2a2a2a] border border-white/20 flex items-center justify-center text-[#2ec27e] shadow-md">
                   <Lock size={13} />
                 </div>
               </div>
             ) : (
-              <div className="w-20 h-20 rounded-3xl bg-zinc-900/80 border border-white/10 shadow-2xl flex items-center justify-center text-blue-400">
+              <div className="w-20 h-20 rounded-3xl bg-[#2a2a2a] border border-white/10 shadow-2xl flex items-center justify-center text-[#3584e4]">
                 {step === 'success' ? (
-                  <CheckCircle2 size={40} className="text-emerald-400 animate-scaleIn" />
+                  <CheckCircle2 size={40} className="text-[#2ec27e] animate-scaleIn" />
                 ) : step === 'create' || step === 'confirm' ? (
-                  <Shield size={38} className="text-blue-400" />
+                  <Shield size={38} className="text-[#3584e4]" />
                 ) : (
-                  <Lock size={38} className="text-blue-400" />
+                  <Lock size={38} className="text-[#3584e4]" />
                 )}
               </div>
             )}
@@ -321,10 +319,10 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                   key={i}
                   className={`w-4 h-4 rounded-full transition-all duration-200 ${
                     hasError
-                      ? 'bg-rose-500 scale-110 shadow-md shadow-rose-500/30'
+                      ? 'bg-[#e01b24] scale-110 shadow-md shadow-[#e01b24]/30'
                       : isFilled
-                        ? 'bg-blue-500 scale-110 shadow-md shadow-blue-500/30'
-                        : 'bg-zinc-800 border border-zinc-700'
+                        ? 'bg-[#3584e4] scale-110 shadow-md shadow-[#3584e4]/30'
+                        : 'bg-white/10 border border-white/15'
                   }`}
                 />
               );
@@ -333,7 +331,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
 
           {/* Error Feedback */}
           {errorMsg && (
-            <p className="text-xs font-semibold text-rose-400 -mt-3 mb-5 animate-[shake_0.2s_ease]">
+            <p className="text-xs font-semibold text-[#e01b24] -mt-3 mb-5 animate-[shake_0.2s_ease]">
               {errorMsg}
             </p>
           )}
@@ -345,7 +343,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                 key={num}
                 type="button"
                 onClick={() => handleDigit(num)}
-                className="w-full aspect-square rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 active:bg-zinc-700 active:scale-95 border border-white/5 text-xl font-bold text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                className="w-full aspect-square rounded-2xl bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] active:scale-95 border border-white/5 text-xl font-bold text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
               >
                 {num}
               </button>
@@ -356,7 +354,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
               <button
                 type="button"
                 onClick={handleBiometricAuth}
-                className="w-full aspect-square rounded-2xl bg-zinc-900/40 hover:bg-zinc-800 text-blue-400 flex items-center justify-center transition-all cursor-pointer"
+                className="w-full aspect-square rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-[#3584e4] flex items-center justify-center transition-all cursor-pointer"
                 title="Autenticação Biométrica"
               >
                 <Fingerprint size={24} />
@@ -369,7 +367,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
             <button
               type="button"
               onClick={() => handleDigit('0')}
-              className="w-full aspect-square rounded-2xl bg-zinc-900/60 hover:bg-zinc-800 active:bg-zinc-700 active:scale-95 border border-white/5 text-xl font-bold text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
+              className="w-full aspect-square rounded-2xl bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] active:scale-95 border border-white/5 text-xl font-bold text-white flex items-center justify-center transition-all cursor-pointer shadow-sm"
             >
               0
             </button>
@@ -378,7 +376,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
             <button
               type="button"
               onClick={handleDelete}
-              className="w-full aspect-square rounded-2xl bg-zinc-900/40 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              className="w-full aspect-square rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
               title="Apagar"
             >
               <Delete size={22} />

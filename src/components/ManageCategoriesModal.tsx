@@ -183,19 +183,19 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
     .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
       <div 
-        className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-white/10 rounded-3xl max-w-xl w-full p-6 shadow-2xl animate-[scaleIn_0.15s_ease] overflow-hidden flex flex-col max-h-[90vh]"
+        className="adw-dialog max-w-xl w-full p-6 shadow-2xl animate-scaleIn overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-white/5">
+        <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/5">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#3584e4]/10 text-[#3584e4] flex items-center justify-center">
               <Sparkles size={20} />
             </div>
             <div>
-              <h3 className="text-lg font-black text-zinc-900 dark:text-white leading-tight">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">
                 Cadastros & Categorias
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -206,20 +206,20 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
 
           <button 
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex p-1 bg-zinc-100/80 dark:bg-zinc-800/60 rounded-2xl my-4 border border-zinc-200/60 dark:border-zinc-700/60">
+        <div className="flex p-1 bg-black/5 dark:bg-white/5 rounded-xl my-4 border border-black/5 dark:border-white/5">
           <button
             type="button"
             onClick={() => { setActiveTab('companies'); setSearch(''); }}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'companies'
-                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-xs'
                 : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
@@ -230,9 +230,9 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveTab('types'); setSearch(''); }}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'types'
-                ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-xs'
                 : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
             }`}
           >
@@ -249,25 +249,24 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
             placeholder={activeTab === 'companies' ? 'Buscar empresa ou categoria...' : 'Buscar tipo de despesa...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/80 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400"
+            className="adw-entry pl-9 text-xs"
           />
         </div>
-
         {/* TAB 1: EMPRESAS */}
         {activeTab === 'companies' && (
           <div className="flex-1 overflow-hidden flex flex-col">
             
             {/* Add / Edit Form */}
-            <form onSubmit={handleSaveCompany} className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-white/5 mb-4 space-y-3">
+            <form onSubmit={handleSaveCompany} className="p-3.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 mb-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                <span className="text-xs font-semibold text-zinc-900 dark:text-white">
                   {editingCompanyId ? 'Editar Empresa' : 'Cadastrar Nova Empresa'}
                 </span>
                 {editingCompanyId && (
                   <button 
                     type="button" 
                     onClick={handleCancelEditCompany}
-                    className="text-[11px] font-bold text-zinc-500 hover:underline"
+                    className="text-[11px] font-semibold text-zinc-500 hover:underline cursor-pointer"
                   >
                     Cancelar edição
                   </button>
@@ -277,12 +276,12 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div className="relative">
                   <input 
-                    type="text"
+                    type="text" 
                     required
                     placeholder="Nome da empresa (ex: Netflix)"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400"
+                    className="adw-entry text-xs"
                   />
                 </div>
 
@@ -290,14 +289,14 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsCompanyTypeDropdownOpen(!isCompanyTypeDropdownOpen)}
-                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 flex items-center justify-between cursor-pointer"
+                    className="adw-entry text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>{companyType}</span>
                     <ChevronDown size={14} className={`text-zinc-400 transition-transform ${isCompanyTypeDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {isCompanyTypeDropdownOpen && (
-                    <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
+                    <div className="absolute left-0 right-0 mt-1 adw-popover rounded-xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
                       {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(t => (
                         <button
                           key={t}
@@ -306,14 +305,14 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                             setCompanyType(t);
                             setIsCompanyTypeDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                          className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                             companyType === t 
-                              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold' 
-                              : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                              ? 'bg-[#3584e4]/15 text-[#3584e4] font-bold' 
+                              : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5'
                           }`}
                         >
                           <span>{t}</span>
-                          {companyType === t && <Check size={14} className="text-blue-500" />}
+                          {companyType === t && <Check size={14} className="text-[#3584e4]" />}
                         </button>
                       ))}
                     </div>
@@ -323,7 +322,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="adw-btn suggested-action w-full py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {editingCompanyId ? <Check size={14} /> : <Plus size={14} />}
                 <span>{editingCompanyId ? 'Salvar Alterações' : 'Adicionar Empresa'}</span>
@@ -331,7 +330,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
             </form>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+            <div className="flex-1 overflow-y-auto pr-1 space-y-1.5">
               {loading ? (
                 <p className="text-center py-6 text-xs text-zinc-400">Carregando...</p>
               ) : filteredCompanies.length === 0 ? (
@@ -340,13 +339,13 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                 filteredCompanies.map(comp => (
                   <div 
                     key={comp.id}
-                    className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-white/5 flex items-center justify-between gap-3 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-colors"
+                    className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center justify-between gap-3 hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
                       <CategoryIcon type={comp.default_type} size={15} />
                       <div>
-                        <div className="font-bold text-xs text-zinc-900 dark:text-white">{comp.name}</div>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full mt-0.5">
+                        <div className="font-semibold text-xs text-zinc-900 dark:text-white">{comp.name}</div>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#3584e4] bg-[#3584e4]/10 px-2 py-0.5 rounded-full mt-0.5">
                           <Tag size={10} />
                           {comp.default_type}
                         </span>
@@ -357,7 +356,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleStartEditCompany(comp)}
-                        className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
                         title="Editar"
                       >
                         <Edit2 size={14} />
@@ -365,7 +364,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setDeleteCompanyId(comp.id!)}
-                        className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20 text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[#e01b24]/10 text-zinc-500 hover:text-[#e01b24] transition-colors cursor-pointer"
                         title="Excluir"
                       >
                         <Trash2 size={14} />
@@ -384,8 +383,8 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
           <div className="flex-1 overflow-hidden flex flex-col">
             
             {/* Add Type Form */}
-            <form onSubmit={handleAddType} className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-white/5 mb-4 space-y-3">
-              <span className="text-xs font-bold text-zinc-900 dark:text-white block">
+            <form onSubmit={handleAddType} className="p-3.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 mb-4 space-y-3">
+              <span className="text-xs font-semibold text-zinc-900 dark:text-white block">
                 Novo Tipo de Despesa
               </span>
 
@@ -396,11 +395,11 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                   placeholder="Nome do tipo (ex: Animais, Impostos...)"
                   value={typeName}
                   onChange={(e) => setTypeName(e.target.value)}
-                  className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400"
+                  className="adw-entry flex-1 text-xs"
                 />
                 <button
                   type="submit"
-                  className="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center gap-1 cursor-pointer"
+                  className="adw-btn suggested-action text-xs font-semibold px-3.5 py-2 inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Plus size={14} />
                   <span>Adicionar</span>
@@ -409,7 +408,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
             </form>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+            <div className="flex-1 overflow-y-auto pr-1 space-y-1.5">
               {loading ? (
                 <p className="text-center py-6 text-xs text-zinc-400">Carregando...</p>
               ) : filteredTypes.length === 0 ? (
@@ -422,7 +421,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                   return (
                     <div 
                       key={type}
-                      className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/30 border border-zinc-200/60 dark:border-white/5 flex items-center justify-between gap-3 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-colors"
+                      className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center justify-between gap-3 hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
                     >
                       <div className="flex items-center gap-2.5 flex-1">
                         <CategoryIcon type={type} size={15} />
@@ -430,16 +429,16 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                         {isEditing ? (
                           <div className="flex items-center gap-2 flex-1">
                             <input 
-                              type="text"
+                              type="text" 
                               autoFocus
                               value={editTypeInput}
                               onChange={(e) => setEditTypeInput(e.target.value)}
-                              className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-lg px-2.5 py-1 text-xs font-bold text-zinc-900 dark:text-white flex-1"
+                              className="adw-entry text-xs py-1 px-2 flex-1"
                             />
                             <button
                               type="button"
                               onClick={handleSaveEditType}
-                              className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                              className="adw-btn suggested-action p-1.5 cursor-pointer"
                               title="Salvar"
                             >
                               <Check size={14} />
@@ -447,7 +446,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                             <button
                               type="button"
                               onClick={() => setEditingTypeName(null)}
-                              className="p-1.5 rounded-lg bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200"
+                              className="adw-btn p-1.5 cursor-pointer"
                               title="Cancelar"
                             >
                               <X size={14} />
@@ -455,7 +454,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                           </div>
                         ) : (
                           <div>
-                            <div className="font-bold text-xs text-zinc-900 dark:text-white">{type}</div>
+                            <div className="font-semibold text-xs text-zinc-900 dark:text-white">{type}</div>
                             <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
                               {associatedCount} {associatedCount === 1 ? 'empresa associada' : 'empresas associadas'}
                             </span>
@@ -468,7 +467,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                           <button
                             type="button"
                             onClick={() => handleStartEditType(type)}
-                            className="p-1.5 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
                             title="Renomear"
                           >
                             <Edit2 size={14} />
@@ -476,7 +475,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setDeleteTypeName(type)}
-                            className="p-1.5 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20 text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-[#e01b24]/10 text-zinc-500 hover:text-[#e01b24] transition-colors cursor-pointer"
                             title="Excluir"
                           >
                             <Trash2 size={14} />
@@ -493,11 +492,11 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
         )}
 
         {/* Footer */}
-        <div className="pt-4 border-t border-zinc-100 dark:border-white/5 flex justify-end">
+        <div className="pt-4 border-t border-black/5 dark:border-white/5 flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-xs transition-all"
+            className="adw-btn text-xs font-semibold px-4 py-2 cursor-pointer"
           >
             Concluir
           </button>
@@ -507,9 +506,9 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
 
       {/* Delete Confirmation Modal for Company */}
       {deleteCompanyId && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-[fadeIn_0.1s_ease]">
-          <div className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-white/10 rounded-3xl max-w-xs w-full p-5 text-center shadow-2xl">
-            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-2.5">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div className="adw-dialog max-w-xs w-full p-5 text-center shadow-2xl">
+            <div className="w-10 h-10 rounded-full bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-2.5">
               <AlertCircle size={22} />
             </div>
             <h5 className="font-bold text-sm text-zinc-900 dark:text-white">Excluir Empresa?</h5>
@@ -520,14 +519,14 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
               <button
                 type="button"
                 onClick={() => setDeleteCompanyId(null)}
-                className="flex-1 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300"
+                className="adw-btn flex-1 py-1.5 text-xs font-semibold cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => handleConfirmDeleteCompany(deleteCompanyId)}
-                className="flex-1 py-1.5 rounded-xl bg-rose-600 text-xs font-bold text-white shadow-sm"
+                className="adw-btn destructive-action flex-1 py-1.5 text-xs font-semibold cursor-pointer"
               >
                 Excluir
               </button>
@@ -538,9 +537,9 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
 
       {/* Delete Confirmation Modal for Type */}
       {deleteTypeName && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-[fadeIn_0.1s_ease]">
-          <div className="bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-white/10 rounded-3xl max-w-xs w-full p-5 text-center shadow-2xl">
-            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-2.5">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div className="adw-dialog max-w-xs w-full p-5 text-center shadow-2xl">
+            <div className="w-10 h-10 rounded-full bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-2.5">
               <AlertCircle size={22} />
             </div>
             <h5 className="font-bold text-sm text-zinc-900 dark:text-white">Excluir Tipo "{deleteTypeName}"?</h5>
@@ -551,14 +550,14 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
               <button
                 type="button"
                 onClick={() => setDeleteTypeName(null)}
-                className="flex-1 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300"
+                className="adw-btn flex-1 py-1.5 text-xs font-semibold cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => handleConfirmDeleteType(deleteTypeName)}
-                className="flex-1 py-1.5 rounded-xl bg-rose-600 text-xs font-bold text-white shadow-sm"
+                className="adw-btn destructive-action flex-1 py-1.5 text-xs font-semibold cursor-pointer"
               >
                 Excluir
               </button>

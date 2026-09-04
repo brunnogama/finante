@@ -58,7 +58,7 @@ function App() {
 
   return (
     <Router>
-      <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#F4F4F5] dark:bg-[#000000] text-zinc-900 dark:text-zinc-100 font-sans antialiased selection:bg-emerald-500/30">
+      <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#fafafa] dark:bg-[#242424] text-zinc-900 dark:text-zinc-100 font-sans antialiased selection:bg-blue-500/30">
         <HeaderBar title="Finante" />
         
         <div className="flex flex-1 overflow-hidden flex-col md:flex-row relative">

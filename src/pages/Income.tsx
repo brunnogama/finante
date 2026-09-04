@@ -243,106 +243,106 @@ export const Income: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn pb-24 md:pb-8">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-8">
       
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Wallet size={20} strokeWidth={2.3} />
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-[#2ec27e]/10 dark:bg-[#2ec27e]/20 text-[#2ec27e] flex items-center justify-center shrink-0">
+              <Wallet size={18} strokeWidth={2.3} />
             </span>
             Receitas
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
             Controle de salários, dividendos e entradas financeiras
           </p>
         </div>
 
         <button
           onClick={handleOpenAddModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+          className="adw-btn suggested-action"
         >
-          <Plus size={18} strokeWidth={2.5} />
+          <Plus size={16} strokeWidth={2.5} />
           <span>Nova Receita</span>
         </button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Total Receitas */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
-          <div className="flex items-center justify-between mb-2 sm:mb-3 min-w-0">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+        <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Total em Receitas
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <ArrowDownLeft size={17} strokeWidth={2.5} />
+            <div className="w-7 h-7 rounded-lg bg-[#2ec27e]/10 dark:bg-[#2ec27e]/20 text-[#2ec27e] flex items-center justify-center shrink-0">
+              <ArrowDownLeft size={15} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight truncate min-w-0" title={formatCurrency(stats.total)}>
+          <div className="text-xl sm:text-2xl font-bold text-[#2ec27e] tracking-tight truncate min-w-0" title={formatCurrency(stats.total)}>
             {formatCurrency(stats.total)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
             {selectedMonth === 'all' ? 'Histórico completo' : formatMonthLabel(selectedMonth)}
           </div>
         </div>
 
         {/* Quantidade de Entradas */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
-          <div className="flex items-center justify-between mb-2 sm:mb-3 min-w-0">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+        <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Lançamentos
             </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <Sparkles size={17} strokeWidth={2.5} />
+            <div className="w-7 h-7 rounded-lg bg-[#3584e4]/10 dark:bg-[#3584e4]/20 text-[#3584e4] flex items-center justify-center shrink-0">
+              <Sparkles size={15} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-zinc-900 dark:text-white tracking-tight truncate min-w-0">
-            {stats.count} <span className="text-sm font-normal text-zinc-400">registros</span>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tracking-tight truncate min-w-0">
+            {stats.count} <span className="text-xs font-normal text-zinc-400">registros</span>
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
             {stats.count === 1 ? '1 entrada cadastrada' : `${stats.count} entradas cadastradas`}
           </div>
         </div>
 
         {/* Média por Entrada */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
-          <div className="flex items-center justify-between mb-2 sm:mb-3 min-w-0">
-            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+        <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Média por Entrada
             </span>
-            <div className="w-8 h-8 rounded-xl bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-              <TrendingUp size={17} strokeWidth={2.5} />
+            <div className="w-7 h-7 rounded-lg bg-[#21a1a9]/10 dark:bg-[#21a1a9]/20 text-[#21a1a9] flex items-center justify-center shrink-0">
+              <TrendingUp size={15} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-zinc-900 dark:text-white tracking-tight truncate min-w-0" title={formatCurrency(stats.average)}>
+          <div className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tracking-tight truncate min-w-0" title={formatCurrency(stats.average)}>
             {formatCurrency(stats.average)}
           </div>
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
             Valor médio por recebimento
           </div>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 border border-zinc-200/70 dark:border-white/10 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between relative z-20">
+      <div className="bg-white dark:bg-white/[0.06] rounded-xl p-3 border border-black/10 dark:border-white/10 shadow-xs flex flex-col md:flex-row gap-2.5 items-center justify-between relative z-20">
         {/* Search */}
         <div className="relative w-full md:w-80">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar por fonte (ex: Salário)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl pl-9 pr-8 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+            className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg pl-8.5 pr-7 py-1.5 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/30 transition-all"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
@@ -352,33 +352,33 @@ export const Income: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-            className="w-full md:w-auto flex items-center justify-between gap-2 px-3.5 py-2 bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-zinc-700/60 transition-all cursor-pointer"
+            className="w-full md:w-auto flex items-center justify-between gap-2 px-3 py-1.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-black/10 dark:hover:bg-white/10 transition-all cursor-pointer"
           >
-            <div className="flex items-center gap-2">
-              <Calendar size={15} className="text-zinc-400" />
+            <div className="flex items-center gap-1.5">
+              <Calendar size={13} className="text-zinc-400" />
               <span>{formatMonthLabel(selectedMonth)}</span>
             </div>
-            <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown size={13} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isMonthDropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-60 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80 rounded-2xl shadow-xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
+            <div className="absolute right-0 mt-1.5 w-60 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
               <button
                 onClick={() => {
                   setSelectedMonth('all');
                   setIsMonthDropdownOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
                   selectedMonth === 'all' 
-                    ? 'font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15' 
+                    ? 'font-bold text-white bg-[#3584e4]' 
                     : 'text-zinc-700 dark:text-zinc-300'
                 }`}
               >
                 <span>Todos os Meses</span>
-                {selectedMonth === 'all' && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                {selectedMonth === 'all' && <Check size={14} className="text-white" />}
               </button>
               
-              <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-1" />
+              <div className="h-px bg-black/5 dark:bg-white/10 my-1" />
 
               {availableMonths.map((m) => (
                 <button
@@ -387,14 +387,14 @@ export const Income: React.FC = () => {
                     setSelectedMonth(m);
                     setIsMonthDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
                     selectedMonth === m 
-                      ? 'font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15' 
+                      ? 'font-bold text-white bg-[#3584e4]' 
                       : 'text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
                   <span>{formatMonthLabel(m)}</span>
-                  {selectedMonth === m && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                  {selectedMonth === m && <Check size={14} className="text-white" />}
                 </button>
               ))}
             </div>
@@ -402,19 +402,19 @@ export const Income: React.FC = () => {
         </div>
       </div>
 
-      {/* Income Records List */}
-      <div className="space-y-2.5">
+      {/* Income Records Boxed List */}
+      <div className="space-y-3">
         {loading ? (
           <div className="py-16 text-center text-zinc-400 flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm">Carregando receitas...</p>
+            <div className="w-7 h-7 border-2 border-[#3584e4] border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs">Carregando receitas...</p>
           </div>
         ) : filteredIncomes.length === 0 ? (
-          <div className="bg-white dark:bg-zinc-900/60 rounded-3xl p-12 text-center border border-zinc-200/70 dark:border-white/10">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3">
-              <Wallet size={28} strokeWidth={2} />
+          <div className="bg-white dark:bg-white/[0.06] rounded-xl p-10 text-center border border-black/10 dark:border-white/10">
+            <div className="w-12 h-12 rounded-xl bg-[#2ec27e]/10 text-[#2ec27e] flex items-center justify-center mx-auto mb-2.5">
+              <Wallet size={24} strokeWidth={2} />
             </div>
-            <h3 className="text-base font-semibold text-zinc-900 dark:text-white">Nenhuma receita encontrada</h3>
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Nenhuma receita encontrada</h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
               {searchTerm 
                 ? 'Tente ajustar os filtros ou pesquisar por outro termo.' 
@@ -422,90 +422,92 @@ export const Income: React.FC = () => {
             </p>
             <button
               onClick={handleOpenAddModal}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+              className="mt-3 adw-btn suggested-action"
             >
-              <Plus size={16} strokeWidth={2.5} />
+              <Plus size={15} strokeWidth={2.5} />
               <span>Adicionar Primeira Receita</span>
             </button>
           </div>
         ) : (
-          filteredIncomes.map((inc) => (
-            <div
-              key={inc.id}
-              className="group bg-white dark:bg-zinc-900/60 hover:bg-zinc-50/90 dark:hover:bg-zinc-800/50 backdrop-blur-md rounded-2xl p-4 border border-zinc-200/70 dark:border-white/10 shadow-xs transition-all flex items-center justify-between gap-4"
-            >
-              {/* Left Info */}
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
-                  <ArrowDownLeft size={20} strokeWidth={2.4} />
-                </div>
-                <div className="min-w-0">
-                  <div className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm md:text-base truncate">
-                    {inc.source}
+          <div className="boxed-list">
+            {filteredIncomes.map((inc) => (
+              <div
+                key={inc.id}
+                className="boxed-list-row group"
+              >
+                {/* Left Info */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#2ec27e]/10 text-[#2ec27e] flex items-center justify-center flex-shrink-0">
+                    <ArrowDownLeft size={16} strokeWidth={2.4} />
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={12} className="opacity-70" />
-                      {inc.date ? inc.date.split('-').reverse().join('/') : '-'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Info & Actions */}
-              <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
-                <div className="text-right">
-                  <div className="text-base md:text-lg font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
-                    +{formatCurrency(inc.amount)}
+                  <div className="min-w-0">
+                    <div className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm truncate">
+                      {inc.source}
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={11} className="opacity-70" />
+                        {inc.date ? inc.date.split('-').reverse().join('/') : '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleOpenEditModal(inc)}
-                    className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                    title="Editar Receita"
-                  >
-                    <Edit3 size={16} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmId(inc.id || null)}
-                    className="p-2 rounded-xl text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                    title="Excluir Receita"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                {/* Right Info & Actions */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="text-right">
+                    <div className="text-sm sm:text-base font-bold text-[#2ec27e] tracking-tight">
+                      +{formatCurrency(inc.amount)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleOpenEditModal(inc)}
+                      className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      title="Editar Receita"
+                    >
+                      <Edit3 size={15} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(inc.id || null)}
+                      className="p-1.5 rounded-md text-zinc-400 hover:text-[#e01b24] hover:bg-[#e01b24]/10 transition-colors cursor-pointer"
+                      title="Excluir Receita"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
       {/* Modal: Nova / Editar Receita */}
       {isFormModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-md w-full border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+          <div className="adw-dialog max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <Wallet size={18} strokeWidth={2.3} />
+            <div className="px-5 py-3.5 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#2ec27e]/10 text-[#2ec27e] flex items-center justify-center">
+                  <Wallet size={16} strokeWidth={2.3} />
                 </div>
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
                   {editingId ? 'Editar Receita' : 'Nova Receita'}
                 </h3>
               </div>
               <button
                 onClick={() => setIsFormModalOpen(false)}
-                className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSaveIncome} className="p-6 space-y-4">
+            <form onSubmit={handleSaveIncome} className="p-5 space-y-4">
               {/* Quick Suggestion Chips */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
@@ -519,8 +521,8 @@ export const Income: React.FC = () => {
                       onClick={() => setSource(s)}
                       className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
                         source === s
-                          ? 'bg-emerald-600 text-white border-emerald-600 font-medium'
-                          : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700/60 hover:bg-zinc-200/80 dark:hover:bg-zinc-700'
+                          ? 'bg-[#3584e4] text-white border-[#3584e4] font-semibold'
+                          : 'bg-black/5 dark:bg-white/5 text-zinc-700 dark:text-zinc-300 border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10'
                       }`}
                     >
                       {s}
@@ -540,7 +542,7 @@ export const Income: React.FC = () => {
                   placeholder="Ex: Salário Empresa X"
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
-                  className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/30"
                 />
               </div>
 
@@ -550,7 +552,7 @@ export const Income: React.FC = () => {
                   Valor (R$) *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
                     R$
                   </span>
                   <input
@@ -559,7 +561,7 @@ export const Income: React.FC = () => {
                     placeholder="0,00"
                     value={amountInput.replace('R$', '').trim()}
                     onChange={handleAmountChange}
-                    className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                    className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm font-semibold text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/30"
                   />
                 </div>
               </div>
@@ -578,25 +580,25 @@ export const Income: React.FC = () => {
 
               {/* Recurring Toggle (Only for new records) */}
               {!editingId && (
-                <div className="p-3.5 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40 flex items-center justify-between">
+                <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-zinc-900 dark:text-white">
+                    <div className="text-xs font-semibold text-zinc-900 dark:text-white">
                       Repetir Mensalmente
                     </div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
                       Gera lançamentos automáticos futuros (12 meses)
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsRecurring(!isRecurring)}
-                    className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer ${
-                      isRecurring ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-700'
+                    className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer ${
+                      isRecurring ? 'bg-[#3584e4]' : 'bg-zinc-300 dark:bg-zinc-700'
                     }`}
                   >
                     <div
                       className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-200 ${
-                        isRecurring ? 'translate-x-5' : 'translate-x-0'
+                        isRecurring ? 'translate-x-4' : 'translate-x-0'
                       }`}
                     />
                   </button>
@@ -604,17 +606,17 @@ export const Income: React.FC = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsFormModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="flex-1 adw-btn"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all cursor-pointer"
+                  className="flex-1 adw-btn suggested-action"
                 >
                   {editingId ? 'Salvar Alterações' : 'Cadastrar Receita'}
                 </button>
@@ -627,26 +629,26 @@ export const Income: React.FC = () => {
       {/* Delete Confirmation Modal */}
       {deleteConfirmId !== null && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl max-w-sm w-full border border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl text-center animate-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle size={26} />
+          <div className="adw-dialog max-w-sm w-full p-5 text-center animate-in zoom-in-95 duration-150">
+            <div className="w-10 h-10 rounded-lg bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-3">
+              <AlertCircle size={22} />
             </div>
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
               Excluir Receita?
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 mb-6">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-5">
               Esta ação não pode ser desfeita. O lançamento será removido permanentemente.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="flex-1 adw-btn"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDeleteIncome(deleteConfirmId)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                className="flex-1 adw-btn destructive-action"
               >
                 Excluir
               </button>

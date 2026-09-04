@@ -17,7 +17,7 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
     value: dataMap[key]
   }));
 
-  const COLORS = ['#30D158', '#5E5CE6', '#FF9F0A', '#FF453A', '#32ADE6', '#BF5AF2']; // Apple HIG vibrant colors
+  const COLORS = ['#3584e4', '#2ec27e', '#e5a50a', '#e01b24', '#9141ac', '#21a1a9', '#f66151', '#865e3c']; // GNOME 50 / Libadwaita palette
 
   if (data.length === 0) {
     return (
@@ -40,9 +40,9 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={65}
-            outerRadius={85}
-            paddingAngle={5}
+            innerRadius={60}
+            outerRadius={80}
+            paddingAngle={4}
             dataKey="value"
             stroke="none"
           >
@@ -53,14 +53,14 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
           <Tooltip 
             formatter={(value: any) => `R$ ${Number(value).toFixed(2)}`}
             contentStyle={{ 
-              borderRadius: '16px', 
-              border: '1px solid rgba(161, 161, 170, 0.2)', 
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)', 
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              padding: '12px 16px',
+              borderRadius: '8px', 
+              border: '1px solid rgba(255, 255, 255, 0.1)', 
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)', 
+              backgroundColor: '#383838',
+              padding: '8px 12px',
               fontWeight: 600,
+              fontSize: '12px',
+              color: '#ffffff'
             }}
           />
           <Legend 

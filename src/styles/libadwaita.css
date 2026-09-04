@@ -1,225 +1,320 @@
-/* Fonte Geométrica Moderna: Plus Jakarta Sans */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* GNOME 50 / Libadwaita Design System */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cantarell:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
 :root {
-  /* V2 Light Theme */
-  --window-bg-color: #ebebed;
-  --window-fg-color: #0f172a;
-  
-  --headerbar-bg-color: #ebebed;
-  --headerbar-fg-color: #0f172a;
-  --headerbar-border-color: rgba(0, 0, 0, 0.05);
-  
-  --card-bg-color: rgba(255, 255, 255, 0.85);
-  --card-border-color: rgba(0, 0, 0, 0.05);
-  
-  /* Cores V2 (Acentos Premium) */
-  --accent-color: #3B82F6; /* Sapphire Blue */
-  --accent-fg-color: #ffffff;
-  --accent-hover-color: #2563EB;
-  
-  --success-color: #10B981; /* Emerald Green */
-  --warning-color: #F59E0B; /* Amber */
-  --destructive-color: #EF4444; /* Coral Red */
-  
-  --button-bg-color: rgba(0, 0, 0, 0.04);
-  --button-hover-bg-color: rgba(0, 0, 0, 0.08);
-  
-  --border-radius-window: 24px;
-  --border-radius-card: 20px;
-  --border-radius-button: 14px;
+  /* Libadwaita Light Theme */
+  --adw-window-bg: #fafafa;
+  --adw-view-bg: #ffffff;
+  --adw-headerbar-bg: #ebebeb;
+  --adw-headerbar-fg: #2e3436;
+  --adw-headerbar-border: rgba(0, 0, 0, 0.1);
+
+  --adw-card-bg: #ffffff;
+  --adw-card-fg: #2e3436;
+  --adw-card-border: rgba(0, 0, 0, 0.08);
+
+  --adw-popover-bg: #ffffff;
+  --adw-popover-fg: #2e3436;
+  --adw-dialog-bg: #fafafa;
+
+  /* GNOME Palette */
+  --adw-accent: #3584e4;          /* Blue 3 */
+  --adw-accent-hover: #1c71d8;    /* Blue 4 */
+  --adw-accent-bg: rgba(53, 132, 228, 0.12);
+  --adw-accent-fg: #ffffff;
+
+  --adw-destructive: #e01b24;     /* Red 3 */
+  --adw-destructive-hover: #c01c28; /* Red 4 */
+  --adw-destructive-bg: rgba(224, 27, 36, 0.12);
+
+  --adw-success: #2ec27e;         /* Green 3 */
+  --adw-success-hover: #26a269;   /* Green 4 */
+  --adw-success-bg: rgba(46, 194, 126, 0.12);
+
+  --adw-warning: #e5a50a;         /* Yellow 3 */
+  --adw-warning-hover: #c67600;   /* Yellow 4 */
+  --adw-warning-bg: rgba(229, 165, 10, 0.12);
+
+  --adw-button-bg: rgba(0, 0, 0, 0.06);
+  --adw-button-hover-bg: rgba(0, 0, 0, 0.1);
+  --adw-button-active-bg: rgba(0, 0, 0, 0.15);
+
+  --adw-border: rgba(0, 0, 0, 0.08);
+  --adw-border-strong: rgba(0, 0, 0, 0.15);
+
+  --adw-radius-window: 16px;
+  --adw-radius-card: 12px;
+  --adw-radius-button: 8px;
+  --adw-radius-pill: 9999px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* V2 Deep Dark Theme */
-    --window-bg-color: #2e2e32;
-    --window-fg-color: #f8fafc;
-    
-    --headerbar-bg-color: #2e2e32;
-    --headerbar-fg-color: #f8fafc;
-    --headerbar-border-color: rgba(255, 255, 255, 0.04);
-    
-    --card-bg-color: rgba(255, 255, 255, 0.02);
-    --card-border-color: rgba(255, 255, 255, 0.05);
-    
-    --accent-color: #3B82F6; 
-    --accent-fg-color: #ffffff;
-    --accent-hover-color: #60A5FA;
-    
-    --success-color: #10B981;
-    --warning-color: #FBBF24;
-    --destructive-color: #EF4444;
-    
-    --button-bg-color: rgba(255, 255, 255, 0.05);
-    --button-hover-bg-color: rgba(255, 255, 255, 0.1);
-  }
+.dark, [data-theme="dark"] {
+  /* Libadwaita Dark Theme */
+  --adw-window-bg: #242424;
+  --adw-view-bg: #1e1e1e;
+  --adw-headerbar-bg: #303030;
+  --adw-headerbar-fg: #ffffff;
+  --adw-headerbar-border: rgba(0, 0, 0, 0.35);
+
+  --adw-card-bg: rgba(255, 255, 255, 0.07);
+  --adw-card-fg: #ffffff;
+  --adw-card-border: rgba(255, 255, 255, 0.08);
+
+  --adw-popover-bg: #383838;
+  --adw-popover-fg: #ffffff;
+  --adw-dialog-bg: #303030;
+
+  --adw-accent: #3584e4;
+  --adw-accent-hover: #62a0ea;
+  --adw-accent-bg: rgba(53, 132, 228, 0.2);
+  --adw-accent-fg: #ffffff;
+
+  --adw-destructive: #e01b24;
+  --adw-destructive-hover: #ed333b;
+  --adw-destructive-bg: rgba(224, 27, 36, 0.2);
+
+  --adw-success: #2ec27e;
+  --adw-success-hover: #57e389;
+  --adw-success-bg: rgba(46, 194, 126, 0.2);
+
+  --adw-warning: #e5a50a;
+  --adw-warning-hover: #f6d32d;
+  --adw-warning-bg: rgba(229, 165, 10, 0.2);
+
+  --adw-button-bg: rgba(255, 255, 255, 0.08);
+  --adw-button-hover-bg: rgba(255, 255, 255, 0.14);
+  --adw-button-active-bg: rgba(255, 255, 255, 0.2);
+
+  --adw-border: rgba(255, 255, 255, 0.08);
+  --adw-border-strong: rgba(255, 255, 255, 0.16);
 }
 
-/* Base Styles */
+/* Base resets & typography */
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
 }
 
 body {
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  overflow: hidden; 
+  font-family: 'Cantarell', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Buttons */
-.btn {
+/* Libadwaita Boxed List Pattern */
+.boxed-list {
+  background-color: var(--adw-card-bg);
+  border: 1px solid var(--adw-card-border);
+  border-radius: var(--adw-radius-card);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.boxed-list-row {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--adw-card-border);
+  transition: background-color 0.15s ease;
+}
+
+.boxed-list-row:last-child {
+  border-bottom: none;
+}
+
+.boxed-list-row-interactive {
+  cursor: pointer;
+}
+
+.boxed-list-row-interactive:hover {
+  background-color: var(--adw-button-hover-bg);
+}
+
+/* Libadwaita Buttons */
+.adw-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 12px 20px;
-  border-radius: var(--border-radius-button);
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  border: none;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--adw-radius-button);
+  border: 1px solid transparent;
+  background-color: var(--adw-button-bg);
+  color: inherit;
   cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.adw-btn:hover {
+  background-color: var(--adw-button-hover-bg);
+}
+
+.adw-btn:active {
+  background-color: var(--adw-button-active-bg);
+  transform: scale(0.98);
+}
+
+.adw-btn.suggested-action {
+  background-color: var(--adw-accent);
+  color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(53, 132, 228, 0.3);
+}
+
+.adw-btn.suggested-action:hover {
+  background-color: var(--adw-accent-hover);
+}
+
+.adw-btn.destructive-action {
+  background-color: var(--adw-destructive);
+  color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(224, 27, 36, 0.3);
+}
+
+.adw-btn.destructive-action:hover {
+  background-color: var(--adw-destructive-hover);
+}
+
+.adw-btn.flat-button {
   background-color: transparent;
-  color: var(--window-fg-color);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-color: transparent;
 }
 
-.btn:hover {
-  background-color: var(--button-hover-bg-color);
+.adw-btn.flat-button:hover {
+  background-color: var(--adw-button-hover-bg);
 }
 
-.btn:active {
-  transform: scale(0.96);
-}
-
-.btn-primary {
-  background-color: var(--accent-color);
-  color: var(--accent-fg-color);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.btn-primary:hover {
-  background-color: var(--accent-hover-color);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-}
-
-.btn-icon {
-  padding: 10px;
+.adw-btn.circular {
   border-radius: 50%;
-  background-color: var(--button-bg-color);
+  padding: 8px;
 }
 
-/* Cards (Glassmorphism & V2 Aesthetics) */
-.card {
-  background-color: var(--card-bg-color);
-  border-radius: var(--border-radius-card);
-  padding: 24px;
-  border: 1px solid var(--card-border-color);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.02);
-  margin-bottom: 24px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+.adw-btn.pill {
+  border-radius: var(--adw-radius-pill);
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.04);
+/* Linked button group */
+.adw-linked {
+  display: inline-flex;
+  border-radius: var(--adw-radius-button);
+  overflow: hidden;
 }
 
-.card-title {
-  font-size: 18px;
-  font-weight: 800;
-  margin-bottom: 16px;
-  letter-spacing: -0.4px;
+.adw-linked > .adw-btn {
+  border-radius: 0;
+  border-right: 1px solid var(--adw-border);
 }
 
-/* Floating Label Inputs */
-.input-group {
-  position: relative;
-  margin-bottom: 24px;
-  width: 100%;
+.adw-linked > .adw-btn:first-child {
+  border-top-left-radius: var(--adw-radius-button);
+  border-bottom-left-radius: var(--adw-radius-button);
 }
 
-.input-field {
-  width: 100%;
-  padding: 20px 16px 8px;
-  border-radius: 12px;
-  border: 1px solid var(--card-border-color);
-  background-color: var(--button-bg-color);
-  color: var(--window-fg-color);
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 500;
-  outline: none;
-  transition: all 0.2s ease;
+.adw-linked > .adw-btn:last-child {
+  border-top-right-radius: var(--adw-radius-button);
+  border-bottom-right-radius: var(--adw-radius-button);
+  border-right: none;
 }
 
-.input-field:focus {
-  border-color: var(--accent-color);
-  background-color: transparent;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-}
-
-.input-label {
-  position: absolute;
-  left: 16px;
-  top: 14px;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--window-fg-color);
-  opacity: 0.6;
-  pointer-events: none;
-  transition: all 0.2s ease;
-}
-
-/* When input has focus or has a value (simulated with :not(:placeholder-shown) if possible, but React value tracking is better. Assuming simple css active state for now) */
-.input-field:focus ~ .input-label,
-.input-field:not(:placeholder-shown) ~ .input-label,
-.input-group.has-value .input-label {
-  top: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  opacity: 1;
-  color: var(--accent-color);
-}
-
-/* Empty States */
-.empty-state {
-  display: flex;
-  flex-direction: column;
+/* View Switcher */
+.adw-view-switcher {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  opacity: 0.5;
-  text-align: center;
-  height: 100%;
+  background-color: var(--adw-button-bg);
+  padding: 3px;
+  border-radius: 10px;
+  gap: 2px;
 }
-.empty-state svg {
-  margin-bottom: 12px;
-  opacity: 0.6;
+
+.adw-view-switcher-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  color: inherit;
+  opacity: 0.75;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
 }
-.empty-state p {
+
+.adw-view-switcher-item:hover {
+  opacity: 1;
+  background-color: var(--adw-button-hover-bg);
+}
+
+.adw-view-switcher-item.active {
+  opacity: 1;
+  background-color: var(--adw-card-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Entries (Text Inputs) */
+.adw-entry {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--adw-radius-button);
+  border: 1px solid var(--adw-card-border);
+  background-color: var(--adw-button-bg);
+  color: inherit;
   font-size: 14px;
-  font-weight: 500;
+  outline: none;
+  transition: all 0.15s ease;
 }
 
-/* Utilities */
-.text-success { color: var(--success-color); }
-.text-warning { color: var(--warning-color); }
-.text-danger { color: var(--destructive-color); }
+.adw-entry:focus {
+  border-color: var(--adw-accent);
+  box-shadow: 0 0 0 2px var(--adw-accent-bg);
+  background-color: var(--adw-view-bg);
+}
 
-.flex-row { display: flex; align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-2 { gap: 8px; }
-.gap-4 { gap: 16px; }
-.mt-4 { margin-top: 16px; }
+/* Libadwaita Dialog */
+.adw-dialog {
+  background-color: var(--adw-dialog-bg);
+  border: 1px solid var(--adw-card-border);
+  border-radius: var(--adw-radius-window);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* HeaderBar */
+.adw-headerbar {
+  height: 48px;
+  background-color: var(--adw-headerbar-bg);
+  border-bottom: 1px solid var(--adw-headerbar-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* Scrollbar GTK4 style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.5);
+}
 

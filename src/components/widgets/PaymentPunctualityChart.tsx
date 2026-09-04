@@ -52,10 +52,10 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
   const onTimePercentage = totalPaid > 0 ? Math.round((onTimeAmount / totalPaid) * 100) : 0;
 
   const chartData = [
-    { name: 'Pago em Dia', value: onTimeAmount, count: onTimeCount, color: '#059669' },
-    { name: 'Pago em Atraso', value: lateAmount, count: lateCount, color: '#D97706' },
-    ...(lateFeesTotal > 0 ? [{ name: 'Multa e Juros', value: lateFeesTotal, count: lateCount, color: '#E11D48' }] : []),
-    ...(pendingAmount > 0 ? [{ name: 'Pendente', value: pendingAmount, count: pendingCount, color: '#71717A' }] : [])
+    { name: 'Pago em Dia', value: onTimeAmount, count: onTimeCount, color: '#2ec27e' },
+    { name: 'Pago em Atraso', value: lateAmount, count: lateCount, color: '#e5a50a' },
+    ...(lateFeesTotal > 0 ? [{ name: 'Multa e Juros', value: lateFeesTotal, count: lateCount, color: '#e01b24' }] : []),
+    ...(pendingAmount > 0 ? [{ name: 'Pendente', value: pendingAmount, count: pendingCount, color: '#77767b' }] : [])
   ].filter(d => d.value > 0);
 
   const formatBRL = (val: number) => {
@@ -78,15 +78,15 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         
         {/* Donut Chart */}
-        <div className="w-40 h-40 relative shrink-0">
+        <div className="w-36 h-36 relative shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={50}
-                outerRadius={68}
+                innerRadius={46}
+                outerRadius={62}
                 paddingAngle={4}
                 dataKey="value"
                 stroke="none"
@@ -98,11 +98,10 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
               <Tooltip
                 formatter={(value: any) => formatBRL(Number(value))}
                 contentStyle={{
-                  borderRadius: '16px',
-                  border: '1px solid rgba(161, 161, 170, 0.2)',
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
-                  backgroundColor: 'rgba(24, 24, 27, 0.85)',
-                  backdropFilter: 'blur(16px)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                  backgroundColor: '#383838',
                   padding: '8px 12px',
                   fontWeight: 600,
                   fontSize: '12px',
@@ -114,10 +113,10 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
           
           {/* Centered % */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-            <span className="text-lg sm:text-xl font-extrabold text-zinc-900 dark:text-white leading-tight">
+            <span className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">
               {totalPaid > 0 ? `${onTimePercentage}%` : '0%'}
             </span>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400">
+            <span className="text-[9px] uppercase font-bold tracking-wider text-[#2ec27e]">
               Em Dia
             </span>
           </div>
@@ -127,16 +126,16 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
         <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           
           {/* Pago em Dia */}
-          <div className="p-3 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-between">
+          <div className="p-3 rounded-lg bg-[#2ec27e]/10 border border-[#2ec27e]/20 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                <CheckCircle2 size={15} strokeWidth={2.5} />
+              <div className="w-6 h-6 rounded-md bg-[#2ec27e]/20 text-[#2ec27e] flex items-center justify-center shrink-0">
+                <CheckCircle2 size={14} strokeWidth={2.5} />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 truncate">
+                <div className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 truncate">
                   Pago em Dia ({onTimeCount})
                 </div>
-                <div className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 truncate">
+                <div className="text-xs font-bold text-[#2ec27e] truncate">
                   {formatBRL(onTimeAmount)}
                 </div>
               </div>
@@ -144,16 +143,16 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
           </div>
 
           {/* Pago em Atraso */}
-          <div className="p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 flex items-center justify-between">
+          <div className="p-3 rounded-lg bg-[#e5a50a]/10 border border-[#e5a50a]/20 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                <AlertTriangle size={15} strokeWidth={2.5} />
+              <div className="w-6 h-6 rounded-md bg-[#e5a50a]/20 text-[#e5a50a] flex items-center justify-center shrink-0">
+                <AlertTriangle size={14} strokeWidth={2.5} />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 truncate">
+                <div className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 truncate">
                   Pago em Atraso ({lateCount})
                 </div>
-                <div className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 truncate">
+                <div className="text-xs font-bold text-[#e5a50a] truncate">
                   {formatBRL(lateAmount)}
                 </div>
               </div>
@@ -161,22 +160,22 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
           </div>
 
           {/* Multas e Juros */}
-          <div className="p-3 rounded-2xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/20 flex items-center justify-between sm:col-span-2">
+          <div className="p-3 rounded-lg bg-[#e01b24]/10 border border-[#e01b24]/20 flex items-center justify-between sm:col-span-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-7 h-7 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                <Flame size={15} strokeWidth={2.5} />
+              <div className="w-6 h-6 rounded-md bg-[#e01b24]/20 text-[#e01b24] flex items-center justify-center shrink-0">
+                <Flame size={14} strokeWidth={2.5} />
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 truncate">
+                <div className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 truncate">
                   Despesas com Multa e Juros por Atraso
                 </div>
-                <div className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 truncate">
+                <div className="text-xs font-bold text-[#e01b24] truncate">
                   {lateFeesTotal > 0 ? `+ ${formatBRL(lateFeesTotal)} pago a mais` : 'R$ 0,00 (Nenhum juro pago)'}
                 </div>
               </div>
             </div>
             {lateFeesTotal > 0 && (
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500 text-white shrink-0">
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#e01b24] text-white shrink-0">
                 ATRASO
               </span>
             )}

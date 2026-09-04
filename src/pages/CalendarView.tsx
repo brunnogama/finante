@@ -165,7 +165,7 @@ export const CalendarView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-2xl bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <span className="w-9 h-9 rounded-xl bg-[#3584e4]/10 text-[#3584e4] flex items-center justify-center">
               <CalendarIcon size={20} strokeWidth={2.3} />
             </span>
             Calendário
@@ -177,11 +177,11 @@ export const CalendarView: React.FC = () => {
 
         <div className="flex items-center gap-2.5">
           {/* Month Navigation Pill */}
-          <div className="flex items-center bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-700/60 rounded-2xl p-1 shadow-xs">
+          <div className="flex items-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-1 shadow-xs">
             <button
               type="button"
               onClick={prevMonth}
-              className="p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
               title="Mês anterior"
             >
               <ChevronLeft size={18} />
@@ -192,7 +192,7 @@ export const CalendarView: React.FC = () => {
             <button
               type="button"
               onClick={nextMonth}
-              className="p-1.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
               title="Próximo mês"
             >
               <ChevronRight size={18} />
@@ -203,7 +203,7 @@ export const CalendarView: React.FC = () => {
             <button
               type="button"
               onClick={goToToday}
-              className="bg-white/80 dark:bg-zinc-800/80 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/60 text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-xs cursor-pointer"
+              className="adw-btn text-xs font-semibold px-3 py-2 cursor-pointer"
             >
               Hoje
             </button>
@@ -211,7 +211,7 @@ export const CalendarView: React.FC = () => {
 
           <Link
             to="/expenses"
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
+            className="adw-btn suggested-action text-xs sm:text-sm inline-flex items-center gap-1.5 px-3.5 py-2 cursor-pointer"
           >
             <Plus size={16} strokeWidth={2.5} />
             <span>Nova Despesa</span>
@@ -222,16 +222,16 @@ export const CalendarView: React.FC = () => {
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Total Despesas */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+        <div className="adw-card p-4 sm:p-5 relative overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0">
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Despesas
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center shrink-0">
               <ArrowDownRight size={17} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-rose-600 dark:text-rose-400 tracking-tight truncate min-w-0" title={formatCurrency(stats.totalExpenses)}>
+          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-[#e01b24] tracking-tight truncate min-w-0" title={formatCurrency(stats.totalExpenses)}>
             {formatCurrency(stats.totalExpenses)}
           </div>
           <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
@@ -240,16 +240,16 @@ export const CalendarView: React.FC = () => {
         </div>
 
         {/* Receitas */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+        <div className="adw-card p-4 sm:p-5 relative overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0">
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Receitas
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#2ec27e]/10 text-[#2ec27e] flex items-center justify-center shrink-0">
               <TrendingUp size={17} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tight truncate min-w-0" title={formatCurrency(stats.totalIncomes)}>
+          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-[#2ec27e] tracking-tight truncate min-w-0" title={formatCurrency(stats.totalIncomes)}>
             {formatCurrency(stats.totalIncomes)}
           </div>
           <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
@@ -258,15 +258,15 @@ export const CalendarView: React.FC = () => {
         </div>
 
         {/* Sobra Prevista */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+        <div className="adw-card p-4 sm:p-5 relative overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0">
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Sobra Prevista
             </span>
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
               stats.projectedBalance >= 0 
-                ? 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' 
-                : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                ? 'bg-[#3584e4]/10 text-[#3584e4]' 
+                : 'bg-[#e01b24]/10 text-[#e01b24]'
             }`}>
               <Wallet size={17} strokeWidth={2.5} />
             </div>
@@ -274,7 +274,7 @@ export const CalendarView: React.FC = () => {
           <div className={`text-xl sm:text-2xl xl:text-3xl font-bold tracking-tight truncate min-w-0 ${
             stats.projectedBalance >= 0 
               ? 'text-zinc-900 dark:text-white' 
-              : 'text-rose-600 dark:text-rose-400'
+              : 'text-[#e01b24]'
           }`} title={formatCurrency(stats.projectedBalance)}>
             {formatCurrency(stats.projectedBalance)}
           </div>
@@ -284,16 +284,16 @@ export const CalendarView: React.FC = () => {
         </div>
 
         {/* A Pagar / Pendente */}
-        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-zinc-200/70 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
+        <div className="adw-card p-4 sm:p-5 relative overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0">
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               A Pagar
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#e5a50a]/10 text-[#e5a50a] flex items-center justify-center shrink-0">
               <Clock size={17} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-amber-600 dark:text-amber-400 tracking-tight truncate min-w-0" title={formatCurrency(stats.totalPending)}>
+          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-[#e5a50a] tracking-tight truncate min-w-0" title={formatCurrency(stats.totalPending)}>
             {formatCurrency(stats.totalPending)}
           </div>
           <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
@@ -306,7 +306,7 @@ export const CalendarView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Calendar Card (Col 8) */}
-        <div className="lg:col-span-8 bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-3xl p-4 sm:p-6 border border-zinc-200/70 dark:border-white/10 shadow-xl">
+        <div className="lg:col-span-8 adw-card p-4 sm:p-6">
           {/* Days of Week Header */}
           <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-3 text-center text-[11px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
@@ -339,11 +339,11 @@ export const CalendarView: React.FC = () => {
                       setSelectedDay(day);
                     }
                   }}
-                  className={`min-h-[78px] sm:min-h-[92px] p-1.5 sm:p-2 rounded-2xl flex flex-col items-center justify-between text-left transition-all duration-200 cursor-pointer relative overflow-hidden ${
+                  className={`min-h-[78px] sm:min-h-[92px] p-1.5 sm:p-2 rounded-xl flex flex-col items-center justify-between text-left transition-all duration-150 cursor-pointer relative overflow-hidden ${
                     isSelected
-                      ? 'ring-2 ring-blue-500 bg-blue-50/80 dark:bg-blue-500/15 border-blue-400 dark:border-blue-500 shadow-md'
+                      ? 'ring-2 ring-[#3584e4] bg-[#3584e4]/15 border-transparent shadow-xs'
                       : isCurrentMonth
-                        ? 'bg-zinc-50/60 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40 hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-800/70 hover:shadow-sm'
+                        ? 'bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:border-black/10 dark:hover:border-white/10'
                         : 'opacity-25 bg-transparent border border-transparent cursor-default'
                   }`}
                 >
@@ -351,9 +351,9 @@ export const CalendarView: React.FC = () => {
                   <div className="w-full flex items-center justify-between">
                     <span className={`text-xs font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-all ${
                       isDayToday
-                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
+                        ? 'bg-[#3584e4] text-white shadow-xs'
                         : isSelected
-                          ? 'text-blue-600 dark:text-blue-400 font-extrabold'
+                          ? 'text-[#3584e4] font-extrabold'
                           : isCurrentMonth
                             ? 'text-zinc-700 dark:text-zinc-300'
                             : 'text-zinc-400 dark:text-zinc-600'
@@ -363,7 +363,7 @@ export const CalendarView: React.FC = () => {
 
                     {/* Status Dot */}
                     {dayExpList.length > 0 && (
-                      <span className={`w-2 h-2 rounded-full ${allDayPaid ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                      <span className={`w-2 h-2 rounded-full ${allDayPaid ? 'bg-[#2ec27e]' : 'bg-[#e01b24]'}`} />
                     )}
                   </div>
 
@@ -371,8 +371,8 @@ export const CalendarView: React.FC = () => {
                   {dayTotalSpent > 0 && isCurrentMonth && (
                     <div className={`w-full mt-auto text-center rounded-lg px-1 py-0.5 text-[10px] sm:text-[11px] font-bold truncate transition-colors ${
                       allDayPaid
-                        ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                        : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                        ? 'bg-[#2ec27e]/15 text-[#2ec27e] border border-[#2ec27e]/20'
+                        : 'bg-[#e01b24]/15 text-[#e01b24] border border-[#e01b24]/20'
                     }`}>
                       {dayTotalSpent < 1000 
                         ? `R$ ${dayTotalSpent.toFixed(0)}` 
@@ -386,10 +386,10 @@ export const CalendarView: React.FC = () => {
         </div>
 
         {/* Side Panel: Vencimentos do Mês ou Dia Selecionado (Col 4) */}
-        <div className="lg:col-span-4 bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-3xl p-5 border border-zinc-200/70 dark:border-white/10 shadow-xl flex flex-col max-h-[620px]">
+        <div className="lg:col-span-4 adw-card p-5 flex flex-col max-h-[620px]">
           
           {/* Panel Header */}
-          <div className="flex items-center justify-between pb-4 mb-3 border-b border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center justify-between pb-4 mb-3 border-b border-black/5 dark:border-white/5">
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-white">
                 {selectedDay ? format(selectedDay, "dd 'de' MMMM", { locale: ptBR }) : 'Despesas do Mês'}
@@ -405,7 +405,7 @@ export const CalendarView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedDay(null)}
-                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold text-[#3584e4] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <X size={14} />
                 <span>Ver Todos</span>
@@ -414,7 +414,7 @@ export const CalendarView: React.FC = () => {
           </div>
 
           {/* List Area */}
-          <div className="space-y-2.5 overflow-y-auto pr-1 flex-1">
+          <div className="space-y-2 overflow-y-auto pr-1 flex-1">
             {displayedExpenses.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center text-zinc-400 dark:text-zinc-500">
                 <CalendarIcon size={36} strokeWidth={1.5} className="mb-2 opacity-40" />
@@ -431,12 +431,10 @@ export const CalendarView: React.FC = () => {
                 return (
                   <div
                     key={expense.id}
-                    className="bg-zinc-50/80 dark:bg-zinc-800/50 hover:bg-zinc-100/80 dark:hover:bg-zinc-800 border border-zinc-200/60 dark:border-zinc-700/40 rounded-2xl p-3 flex items-center justify-between transition-all gap-3"
+                    className="bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-black/5 dark:border-white/5 rounded-xl p-3 flex items-center justify-between transition-all gap-3"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-700 border border-zinc-200/60 dark:border-zinc-600/50 flex items-center justify-center shrink-0 shadow-xs">
-                        <CategoryIcon type={expense.type} size={16} />
-                      </div>
+                      <CategoryIcon type={expense.type} size={16} />
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate">
                           {expense.description || expense.company}
@@ -448,8 +446,8 @@ export const CalendarView: React.FC = () => {
                           <span className="text-[10px] text-zinc-300 dark:text-zinc-600">•</span>
                           <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
                             isPaid 
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                              ? 'bg-[#2ec27e]/15 text-[#2ec27e]' 
+                              : 'bg-[#e5a50a]/15 text-[#e5a50a]'
                           }`}>
                             {isPaid ? 'Pago' : 'A Pagar'}
                           </span>
@@ -457,7 +455,7 @@ export const CalendarView: React.FC = () => {
                       </div>
                     </div>
 
-                    <span className="font-bold text-xs sm:text-sm text-rose-600 dark:text-rose-400 tabular-nums shrink-0">
+                    <span className="font-bold text-xs sm:text-sm text-[#e01b24] tabular-nums shrink-0">
                       {formatCurrency(expense.amount)}
                     </span>
                   </div>

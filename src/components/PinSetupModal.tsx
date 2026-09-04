@@ -40,7 +40,7 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({ onClose }) => {
         setStep('success');
         setTimeout(() => {
           onClose();
-        }, 1500);
+        }, 1200);
       } else {
         setError('Os PINs não conferem. Tente novamente.');
         setConfirmPin('');
@@ -56,60 +56,61 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({ onClose }) => {
   };
 
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(10px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 9999
-    }}>
-      <div className="card" style={{ width: '90%', maxWidth: '400px', padding: '24px', position: 'relative' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+      <div 
+        className="adw-dialog max-w-sm w-full p-6 shadow-2xl animate-scaleIn relative flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button 
           onClick={onClose}
-          style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text-color)', cursor: 'pointer', opacity: 0.7 }}
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
         >
-          <X size={24} />
+          <X size={18} />
         </button>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <div className="flex flex-col items-center text-center">
           
           {step === 'success' ? (
             <>
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
-                <CheckCircle size={36} />
+              <div className="w-14 h-14 rounded-2xl bg-[#2ec27e]/15 text-[#2ec27e] flex items-center justify-center mb-3">
+                <CheckCircle size={32} />
               </div>
-              <h3>PIN Configurado!</h3>
-              <p style={{ opacity: 0.7 }}>Seu aplicativo agora está protegido.</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">PIN Configurado!</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Seu aplicativo agora está protegido.</p>
             </>
           ) : hasPin ? (
             <>
-              <div style={{ backgroundColor: 'rgba(88, 86, 214, 0.1)', color: '#5856D6', padding: '16px', borderRadius: '50%', marginBottom: '16px' }}>
-                <Shield size={40} />
+              <div className="w-14 h-14 rounded-2xl bg-[#9141ac]/15 text-[#9141ac] flex items-center justify-center mb-3">
+                <Shield size={32} />
               </div>
-              <h3>Bloqueio Ativado</h3>
-              <p style={{ opacity: 0.7, marginBottom: '24px' }}>O acesso ao seu aplicativo está protegido por um PIN de 4 dígitos.</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Bloqueio Ativado</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-6">
+                O acesso ao seu aplicativo está protegido por um PIN de 4 dígitos.
+              </p>
               
               <button 
-                className="btn text-danger" 
-                style={{ width: '100%', backgroundColor: 'rgba(255, 59, 48, 0.1)' }}
+                className="adw-btn destructive-action w-full py-2.5 text-xs font-semibold inline-flex items-center justify-center gap-2 cursor-pointer" 
                 onClick={handleRemovePin}
               >
-                <Trash2 size={20} style={{ marginRight: '8px' }} />
-                Remover PIN
+                <Trash2 size={16} />
+                <span>Remover PIN</span>
               </button>
             </>
           ) : (
             <>
-              <div style={{ backgroundColor: 'rgba(88, 86, 214, 0.1)', color: '#5856D6', padding: '16px', borderRadius: '50%', marginBottom: '16px' }}>
-                <Shield size={40} />
+              <div className="w-14 h-14 rounded-2xl bg-[#3584e4]/15 text-[#3584e4] flex items-center justify-center mb-3">
+                <Shield size={32} />
               </div>
-              <h3>{step === 'initial' ? 'Criar um PIN' : 'Confirme seu PIN'}</h3>
-              <p style={{ opacity: 0.7, marginBottom: '24px' }}>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                {step === 'initial' ? 'Criar um PIN' : 'Confirme seu PIN'}
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-5">
                 {step === 'initial' 
                   ? 'Digite 4 números para proteger o aplicativo no seu computador.' 
                   : 'Digite os mesmos 4 números novamente para confirmar.'}
               </p>
 
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '24px' }}>
+              <div className="w-full mb-4">
                 <input
                   type="password"
                   inputMode="numeric"
@@ -122,25 +123,18 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({ onClose }) => {
                     else setConfirmPin(val);
                   }}
                   onKeyDown={handleKeyPress}
-                  style={{
-                    fontSize: '32px',
-                    letterSpacing: '16px',
-                    textAlign: 'center',
-                    width: '100%',
-                    padding: '16px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--card-border-color)',
-                    backgroundColor: 'var(--bg-color)',
-                    color: 'var(--text-color)'
-                  }}
+                  className="adw-entry text-2xl tracking-[16px] text-center font-bold py-3 w-full"
                 />
               </div>
 
-              {error && <p className="text-danger" style={{ marginBottom: '16px', fontSize: '14px' }}>{error}</p>}
+              {error && (
+                <p className="text-xs font-semibold text-[#e01b24] mb-3">
+                  {error}
+                </p>
+              )}
 
               <button 
-                className="btn btn-primary" 
-                style={{ width: '100%' }}
+                className="adw-btn suggested-action w-full py-2.5 text-xs font-semibold cursor-pointer disabled:opacity-50" 
                 onClick={handleSavePin}
                 disabled={(step === 'initial' ? pin.length !== 4 : confirmPin.length !== 4)}
               >

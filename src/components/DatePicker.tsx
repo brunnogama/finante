@@ -132,23 +132,23 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-zinc-100/80 dark:bg-zinc-800/60 border ${
+        className={`w-full bg-black/5 dark:bg-white/5 border ${
           isOpen 
-            ? 'border-emerald-500 ring-2 ring-emerald-500/20' 
-            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-        } rounded-xl px-3.5 py-2.5 text-sm font-semibold flex items-center justify-between text-left transition-all cursor-pointer select-none`}
+            ? 'border-[#3584e4] ring-2 ring-[#3584e4]/20' 
+            : 'border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20'
+        } rounded-lg px-3.5 py-2.5 text-sm font-semibold flex items-center justify-between text-left transition-all cursor-pointer select-none`}
       >
         <span className={displayValue ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}>
           {displayValue || placeholder}
         </span>
-        <div className={`p-1 rounded-lg ${isOpen ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10' : 'text-zinc-400'}`}>
+        <div className={`p-1 rounded-md ${isOpen ? 'text-[#3584e4] bg-[#3584e4]/10' : 'text-zinc-400'}`}>
           <CalendarIcon size={16} strokeWidth={2.2} />
         </div>
       </button>
 
-      {/* Floating Apple-Style Calendar Popover */}
+      {/* Floating Libadwaita Calendar Popover */}
       {isOpen && (
-        <div className="absolute left-0 mt-2 z-50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border border-zinc-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-3.5 w-72 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute left-0 mt-2 z-50 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl p-3.5 w-72 animate-in fade-in zoom-in-95 duration-100">
           
           {/* Header: Month / Year & Prev / Next */}
           <div className="flex items-center justify-between mb-3 px-1">
@@ -160,7 +160,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               <button
                 type="button"
                 onClick={prevMonth}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 title="Mês Anterior"
               >
                 <ChevronLeft size={16} strokeWidth={2.5} />
@@ -168,7 +168,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
               <button
                 type="button"
                 onClick={nextMonth}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 title="Próximo Mês"
               >
                 <ChevronRight size={16} strokeWidth={2.5} />
@@ -197,14 +197,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                   key={idx}
                   type="button"
                   onClick={(e) => handleSelectDay(day, e)}
-                  className={`h-8 w-8 mx-auto rounded-xl flex items-center justify-center text-xs font-semibold transition-all cursor-pointer relative ${
+                  className={`h-8 w-8 mx-auto rounded-lg flex items-center justify-center text-xs font-semibold transition-all cursor-pointer relative ${
                     isSelected
-                      ? 'bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30 scale-105 z-10'
+                      ? 'bg-[#3584e4] text-white font-bold shadow-md shadow-[#3584e4]/30 scale-105 z-10'
                       : !isCurrent
-                      ? 'text-zinc-300 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      ? 'text-zinc-300 dark:text-zinc-600 hover:bg-black/5 dark:hover:bg-white/5'
                       : isCurrentDay
-                      ? 'text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/20 hover:bg-emerald-500/30'
-                      : 'text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      ? 'text-[#3584e4] dark:text-[#62a0ea] font-bold bg-[#3584e4]/10 dark:bg-[#3584e4]/20 hover:bg-[#3584e4]/30'
+                      : 'text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5'
                   }`}
                 >
                   <span>{format(day, 'd')}</span>
@@ -217,14 +217,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           </div>
 
           {/* Footer: Quick "Hoje" (Today) Action */}
-          <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+          <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
             <span className="text-[11px] text-zinc-400 font-medium">
               {displayValue ? `Selecionado: ${displayValue}` : 'Nenhuma data'}
             </span>
             <button
               type="button"
               onClick={handleSelectToday}
-              className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline px-2 py-0.5 rounded-md hover:bg-emerald-500/10 cursor-pointer"
+              className="text-[11px] font-bold text-[#3584e4] dark:text-[#62a0ea] hover:underline px-2 py-0.5 rounded-md hover:bg-[#3584e4]/10 cursor-pointer"
             >
               Hoje
             </button>

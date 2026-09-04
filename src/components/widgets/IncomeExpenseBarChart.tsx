@@ -106,25 +106,24 @@ export const IncomeExpenseBarChart = ({ incomes, expenses }: IncomeExpenseBarCha
               `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
               undefined
             ]}
-            cursor={{ fill: '#a1a1aa', opacity: 0.08, radius: 8 }}
+            cursor={{ fill: '#808080', opacity: 0.1, radius: 6 }}
             contentStyle={{ 
-              borderRadius: '16px', 
-              border: '1px solid rgba(161, 161, 170, 0.2)', 
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)', 
-              backgroundColor: 'rgba(24, 24, 27, 0.9)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              padding: '12px 16px',
+              borderRadius: '8px', 
+              border: '1px solid rgba(255, 255, 255, 0.1)', 
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)', 
+              backgroundColor: '#383838',
+              padding: '8px 12px',
               fontWeight: 600,
+              fontSize: '12px',
               color: '#ffffff',
             }}
           />
           <Legend 
             iconType="circle" 
-            wrapperStyle={{ paddingTop: '16px', fontSize: '13px', fontWeight: 600, color: '#71717a' }} 
+            wrapperStyle={{ paddingTop: '12px', fontSize: '12px', fontWeight: 600, color: '#77767b' }} 
           />
-          <Bar dataKey="Receitas" fill="#30D158" radius={[6, 6, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="Despesas" fill="#FF453A" radius={[6, 6, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="Receitas" fill="#2ec27e" radius={[4, 4, 0, 0]} maxBarSize={24} />
+          <Bar dataKey="Despesas" fill="#e01b24" radius={[4, 4, 0, 0]} maxBarSize={24} />
         </BarChart>
       </ResponsiveContainer>
     </div>
