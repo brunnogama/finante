@@ -11,6 +11,7 @@
     "tauri": "tauri",
     "tauri:build": "tauri build",
     "tauri:build:rpm": "tauri build --bundles rpm",
+    "tauri:build:windows": "tauri build --bundles nsis,msi",
     "icon:generate": "tauri icon public/finante.png",
     "cap:sync": "npm run build && npx cap sync",
     "cap:open": "npx cap open android"
