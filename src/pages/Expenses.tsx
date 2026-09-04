@@ -302,18 +302,67 @@ export const Expenses: React.FC = () => {
     return isPastMonth && (exp.status !== 'paid' && remaining > 0);
   };
 
-  // Helper to calculate the next N months due dates on the same day
+  // Helper to calculate the next N months due dates on the same day safely
   const calculateNextDueDates = (baseDateStr: string, count: number = 6): string[] => {
-    const parts = baseDateStr.split('T')[0].split('-');
-    if (parts.length < 3) return [];
-    const baseYear = parseInt(parts[0], 10);
-    const baseMonth = parseInt(parts[1], 10) - 1; // 0-indexed
-    const baseDay = parseInt(parts[2], 10);
+    if (!baseDateStr) return [];
+
+    let baseYear = 0;
+    let baseMonth = 0; // 0-indexed
+    let baseDay = 1;
+
+    const cleanStr = String(baseDateStr).trim();
+
+    // Check YYYY-MM-DD or YYYY/MM/DD
+    const isoMatch = cleanStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    // Check DD/MM/YYYY or DD-MM-YYYY (Brazilian format)
+    const brMatch = cleanStr.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+
+    if (isoMatch) {
+      baseYear = parseInt(isoMatch[1], 10);
+      baseMonth = parseInt(isoMatch[2], 10) - 1;
+      baseDay = parseInt(isoMatch[3], 10);
+    } else if (brMatch) {
+      baseYear = parseInt(brMatch[3], 10);
+      baseMonth = parseInt(brMatch[2], 10) - 1;
+      baseDay = parseInt(brMatch[1], 10);
+    } else {
+      const d = new Date(cleanStr);
+      if (!isNaN(d.getTime())) {
+        baseYear = d.getFullYear();
+        baseMonth = d.getMonth();
+        baseDay = d.getDate();
+      } else {
+        const now = new Date();
+        baseYear = now.getFullYear();
+        baseMonth = now.getMonth();
+        baseDay = now.getDate();
+      }
+    }
+
+    if (isNaN(baseYear) || baseYear < 1900 || baseYear > 2200) {
+      baseYear = new Date().getFullYear();
+    }
+    if (isNaN(baseMonth) || baseMonth < 0 || baseMonth > 11) {
+      baseMonth = new Date().getMonth();
+    }
+    if (isNaN(baseDay) || baseDay < 1 || baseDay > 31) {
+      baseDay = new Date().getDate();
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // If the base date is from a past month (before current month),
+    // calculate future installments starting from the upcoming months
+    const isPastMonth = (baseYear < currentYear) || (baseYear === currentYear && baseMonth < currentMonth);
+    const startYear = isPastMonth ? currentYear : baseYear;
+    const startMonth = isPastMonth ? currentMonth : baseMonth;
 
     const dates: string[] = [];
     for (let i = 1; i <= count; i++) {
-      const targetMonthIndex = baseMonth + i;
-      const targetYear = baseYear + Math.floor(targetMonthIndex / 12);
+      const targetMonthIndex = startMonth + i;
+      const targetYear = startYear + Math.floor(targetMonthIndex / 12);
       const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
 
       const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
@@ -487,26 +536,26 @@ export const Expenses: React.FC = () => {
       await updateExpense(editingId, payload);
     } else {
       await addExpense(payload);
+    }
 
-      // Replicar para os próximos 6 meses se marcado como despesa recorrente
-      if (isRecurring && currentAmountToPay > 0) {
-        const futureDates = calculateNextDueDates(dueDate, 6);
-        for (const futureDate of futureDates) {
-          await addExpense({
-            company: cleanCompany,
-            description: cleanCompany,
-            type: expenseType,
-            due_date: futureDate,
-            paid_date: undefined,
-            payment_method: undefined,
-            notes: notes.trim(),
-            amount: currentAmountToPay,
-            paid_amount: 0,
-            status: 'pending',
-            bill_attachment: billAttachment || undefined,
-            bill_name: billName || (billAttachment ? 'Boleto / Conta' : undefined)
-          });
-        }
+    // Replicar para os próximos 6 meses se marcado como despesa recorrente
+    if (isRecurring && currentAmountToPay > 0) {
+      const futureDates = calculateNextDueDates(dueDate, 6);
+      for (const futureDate of futureDates) {
+        await addExpense({
+          company: cleanCompany,
+          description: cleanCompany,
+          type: expenseType || types[0] || 'Moradia',
+          due_date: futureDate,
+          paid_date: undefined,
+          payment_method: undefined,
+          notes: notes ? notes.trim() : '',
+          amount: currentAmountToPay,
+          paid_amount: 0,
+          status: 'pending',
+          bill_attachment: billAttachment || undefined,
+          bill_name: billName || (billAttachment ? 'Boleto / Conta' : undefined)
+        });
       }
     }
 
@@ -516,35 +565,45 @@ export const Expenses: React.FC = () => {
   };
 
   const executeReplicate6Months = async (expense: ExpenseRecord) => {
-    if (!expense.due_date || !expense.amount) return;
+    if (!expense) return;
     const amountVal = Number(expense.amount || 0);
-    const companyTitle = expense.company || expense.description || 'Despesa';
+    if (amountVal <= 0) {
+      alert('Esta despesa não possui um valor válido para ser agendada.');
+      return;
+    }
+    const companyTitle = expense.company?.trim() || expense.description?.trim() || 'Despesa';
+    const baseDueDate = expense.due_date || new Date().toISOString().split('T')[0];
 
     setIsReplicating(true);
     try {
-      const futureDates = calculateNextDueDates(expense.due_date, 6);
+      const futureDates = calculateNextDueDates(baseDueDate, 6);
+      if (futureDates.length === 0) {
+        alert('Não foi possível calcular as próximas datas de vencimento.');
+        return;
+      }
       for (const futureDate of futureDates) {
         await addExpense({
           company: companyTitle,
           description: companyTitle,
-          type: expense.type,
+          type: expense.type || types[0] || 'Moradia',
           due_date: futureDate,
           paid_date: undefined,
           payment_method: undefined,
-          notes: expense.notes,
+          notes: expense.notes ? expense.notes.trim() : '',
           amount: amountVal,
           paid_amount: 0,
           status: 'pending',
-          bill_attachment: expense.bill_attachment,
-          bill_name: expense.bill_name
+          bill_attachment: expense.bill_attachment || undefined,
+          bill_name: expense.bill_name || undefined
         });
       }
       setReplicateConfirmExpense(null);
       setSelectedExpense(null);
-      await loadExpensesOnly();
+      await loadAllData();
+      alert(`6 parcelas de ${formatCurrency(amountVal)} foram agendadas com sucesso para os próximos meses.`);
     } catch (err) {
       console.error('Error replicating expense:', err);
-      alert('Ocorreu um erro ao gerar as contas futuras.');
+      alert('Ocorreu um erro ao agendar as contas futuras.');
     } finally {
       setIsReplicating(false);
     }
@@ -1944,35 +2003,36 @@ export const Expenses: React.FC = () => {
                   )}
 
                   {/* Opção: Despesa Recorrente (Replicar para 6 meses) */}
-                  {!editingId && (
-                    <div className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                          isRecurring ? 'bg-[#3584e4]/15 text-[#3584e4]' : 'bg-black/5 dark:bg-white/5 text-zinc-400'
-                        }`}>
-                          <Repeat size={16} strokeWidth={2.3} />
-                        </div>
-                        <div>
-                          <label htmlFor="recurring-toggle" className="text-xs font-bold text-zinc-900 dark:text-white block cursor-pointer">
-                            Despesa Recorrente (6 Meses)
-                          </label>
-                          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block">
-                            Replicar mensalmente para os próximos 6 meses com o mesmo valor
-                          </span>
-                        </div>
+                  <div className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isRecurring ? 'bg-[#3584e4]/15 text-[#3584e4]' : 'bg-black/5 dark:bg-white/5 text-zinc-400'
+                      }`}>
+                        <Repeat size={16} strokeWidth={2.3} />
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                        <input 
-                          id="recurring-toggle"
-                          type="checkbox"
-                          checked={isRecurring}
-                          onChange={(e) => setIsRecurring(e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-zinc-300 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3584e4]"></div>
-                      </label>
+                      <div>
+                        <label htmlFor="recurring-toggle" className="text-xs font-bold text-zinc-900 dark:text-white block cursor-pointer">
+                          Despesa Recorrente (6 Meses)
+                        </label>
+                        <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block">
+                          {editingId 
+                            ? 'Agendar automaticamente 6 faturas mensais futuras a partir desta data'
+                            : 'Replicar mensalmente para os próximos 6 meses com o mesmo valor'
+                          }
+                        </span>
+                      </div>
                     </div>
-                  )}
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input 
+                        id="recurring-toggle"
+                        type="checkbox"
+                        checked={isRecurring}
+                        onChange={(e) => setIsRecurring(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-zinc-300 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3584e4]"></div>
+                    </label>
+                  </div>
 
                   {/* If payment is NOT open, show the "+ Registrar Pagamento" banner */}
                   {!isPaymentSectionOpen && (
@@ -2422,8 +2482,27 @@ export const Expenses: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Preview of generated months */}
+                {(() => {
+                  const previewDates = calculateNextDueDates(replicateConfirmExpense.due_date, 6);
+                  return (
+                    <div className="mb-4 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
+                      <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-1.5">
+                        Datas das faturas que serão agendadas:
+                      </span>
+                      <div className="grid grid-cols-3 gap-1.5 text-center">
+                        {previewDates.map((pDate, idx) => (
+                          <span key={idx} className="text-[11px] font-semibold py-1 px-1.5 rounded-lg bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-black/5 dark:border-white/5 shadow-2xs">
+                            {formatDateBR(pDate)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mb-5 leading-relaxed">
-                  Os vencimentos serão lançados no mesmo dia dos próximos 6 meses com status pendente para você controlar facilmente.
+                  As faturas serão salvas como pendentes para acompanhamento mensal no painel e relatórios.
                 </p>
 
                 <div className="flex gap-2.5 justify-end">

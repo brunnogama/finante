@@ -165,6 +165,10 @@ export const getExpenses = async (): Promise<ExpenseRecord[]> => {
   }
 };
 
+const generateUniqueId = (): number => {
+  return Date.now() + Math.floor(Math.random() * 1000000);
+};
+
 export const addExpense = async (expense: ExpenseRecord) => {
   const company = expense.company?.trim() || expense.description?.trim() || 'Despesa';
   const amount = Number(expense.amount) || 0;
@@ -212,7 +216,7 @@ export const addExpense = async (expense: ExpenseRecord) => {
       if (stdError) {
         console.warn('Fallback to local storage due to Supabase error:', stdError.message);
         const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
-        const newRecord = { ...fullPayload, id: Date.now() };
+        const newRecord = { ...fullPayload, id: generateUniqueId() };
         saveEnrichment(newRecord.id, fullPayload);
         localStorage.setItem('finante_local_expenses', JSON.stringify([...local, newRecord]));
         return [newRecord];
@@ -232,7 +236,7 @@ export const addExpense = async (expense: ExpenseRecord) => {
   } catch (err) {
     console.error('Error adding expense:', err);
     const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
-    const newRecord = { ...fullPayload, id: Date.now() };
+    const newRecord = { ...fullPayload, id: generateUniqueId() };
     saveEnrichment(newRecord.id, fullPayload);
     localStorage.setItem('finante_local_expenses', JSON.stringify([...local, newRecord]));
     return [newRecord];
@@ -274,7 +278,7 @@ export const addIncome = async (income: IncomeRecord) => {
     if (error) {
       console.warn('Fallback to local storage for income:', error.message);
       const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
-      const newRecord = { ...income, id: Date.now() };
+      const newRecord = { ...income, id: generateUniqueId() };
       localStorage.setItem('finante_local_incomes', JSON.stringify([newRecord, ...local]));
       return [newRecord];
     }
@@ -282,7 +286,7 @@ export const addIncome = async (income: IncomeRecord) => {
   } catch (err) {
     console.error('Error adding income:', err);
     const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
-    const newRecord = { ...income, id: Date.now() };
+    const newRecord = { ...income, id: generateUniqueId() };
     localStorage.setItem('finante_local_incomes', JSON.stringify([newRecord, ...local]));
     return [newRecord];
   }
@@ -639,7 +643,7 @@ export const addCompany = async (company: { name: string; default_type: string }
 
   const fallbackRecord: CompanyRecord = {
     ...newCompany,
-    id: Date.now(),
+    id: generateUniqueId(),
     created_at: new Date().toISOString()
   };
   const updated = [...current, fallbackRecord].sort((a, b) => a.name.localeCompare(b.name));
@@ -735,7 +739,7 @@ export const addInvestment = async (investment: Omit<InvestmentRecord, 'id' | 'c
       console.warn('Inserting fallback into local storage for investments:', error.message);
       const newRecord = {
         ...payload,
-        id: Date.now(),
+        id: generateUniqueId(),
         created_at: new Date().toISOString()
       };
       const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
@@ -749,7 +753,7 @@ export const addInvestment = async (investment: Omit<InvestmentRecord, 'id' | 'c
     const newRecord = {
       ...investment,
       amount: Number(investment.amount || 0),
-      id: Date.now(),
+      id: generateUniqueId(),
       created_at: new Date().toISOString()
     };
     const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
