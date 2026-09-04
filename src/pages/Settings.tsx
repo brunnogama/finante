@@ -19,6 +19,7 @@ import { PinSetupModal } from '../components/PinSetupModal';
 import { ChangelogModal } from '../components/ChangelogModal';
 import { ManageCategoriesModal } from '../components/ManageCategoriesModal';
 import { supabase, signInWithGoogle, signOutUser } from '../services/supabase';
+import { checkAppUpdate } from '../services/updater';
 import pkg from '../../package.json';
 
 export const Settings: React.FC = () => {
@@ -68,23 +69,23 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleCheckUpdates = () => {
+  const handleCheckUpdates = async () => {
     setIsCheckingUpdates(true);
     setUpdateStatus(null);
     
-    // Check GitHub commits / repo
-    fetch('https://api.github.com/repos/brunnogama/finante/commits?per_page=5', { cache: 'no-store' })
-      .then(res => res.json())
-      .then(() => {
-        setTimeout(() => {
-          setIsCheckingUpdates(false);
-          setShowChangelog(true);
-        }, 600);
-      })
-      .catch(() => {
-        setIsCheckingUpdates(false);
-        setShowChangelog(true);
-      });
+    try {
+      const update = await checkAppUpdate();
+      setIsCheckingUpdates(false);
+      if (update) {
+        setUpdateStatus(`Nova versão v${update.version} disponível para instalação!`);
+      } else {
+        setUpdateStatus(`Finante v${pkg.version} está na versão mais recente.`);
+      }
+      setShowChangelog(true);
+    } catch {
+      setIsCheckingUpdates(false);
+      setShowChangelog(true);
+    }
   };
 
   const handleForceSync = async () => {

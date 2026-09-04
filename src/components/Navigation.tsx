@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Calendar, Wallet, Receipt, TrendingUp, SlidersHorizontal } from 'lucide-react';
+import { checkAppUpdate } from '../services/updater';
 
 export const Navigation: React.FC = () => {
+  const [hasUpdate, setHasUpdate] = useState(false);
+
+  useEffect(() => {
+    checkAppUpdate().then((update) => {
+      if (update) setHasUpdate(true);
+    }).catch(() => {});
+  }, []);
+
   const getNavItemClass = ({ isActive }: { isActive: boolean }) => {
-    return `flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 py-2 md:py-2.5 px-3 md:px-3.5 rounded-2xl md:rounded-2xl transition-all duration-200 w-full group ${
+    return `flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 py-2 md:py-2.5 px-3 md:px-3.5 rounded-2xl md:rounded-2xl transition-all duration-200 w-full group relative ${
       isActive 
         ? 'text-zinc-950 dark:text-white bg-zinc-200/70 dark:bg-white/10 font-bold shadow-xs' 
         : 'text-zinc-500 hover:bg-zinc-100/80 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-200 font-medium'
@@ -51,10 +60,20 @@ export const Navigation: React.FC = () => {
 
       <div className="md:mt-auto flex w-full justify-center md:justify-start">
         <NavLink to="/settings" className={getNavItemClass}>
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center text-zinc-600 dark:text-zinc-300 bg-zinc-500/10 dark:bg-zinc-500/15">
+          <div className="w-7 h-7 rounded-xl flex items-center justify-center text-zinc-600 dark:text-zinc-300 bg-zinc-500/10 dark:bg-zinc-500/15 relative">
             <SlidersHorizontal size={17} strokeWidth={2.2} />
+            {hasUpdate && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-zinc-900 animate-pulse" />
+            )}
           </div>
-          <span className="text-[10px] md:text-[14px] hidden md:block">Ajustes</span>
+          <div className="flex items-center justify-between flex-1 hidden md:flex">
+            <span className="text-[14px]">Ajustes</span>
+            {hasUpdate && (
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-blue-500 text-white">
+                NOVO
+              </span>
+            )}
+          </div>
         </NavLink>
       </div>
     </nav>

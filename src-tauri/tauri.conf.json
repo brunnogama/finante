@@ -37,5 +37,13 @@
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/brunnogama/finante/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlGMEQyNEQzMzkyRDM1MjcKUldRbk5TMDUweVFObjBubGJXOFNNZ05iU0cyWUI0WG1RRlRhSjBOd3NFUk5OdTZrZVJZK0FpMzMK"
+    }
   }
 }

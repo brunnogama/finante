@@ -27,3 +27,10 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Keys
+*.key
+*.key.pub
+finante.key
+finante.key.pub
+

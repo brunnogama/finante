@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { X, Clock, Sparkles, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { X, Clock, Sparkles, RefreshCw, CheckCircle2, DownloadCloud, ArrowUpCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { checkAppUpdate, downloadAndApplyUpdate } from '../services/updater';
+import type { Update } from '@tauri-apps/plugin-updater';
 
 interface ChangelogModalProps {
   onClose: () => void;
@@ -16,6 +18,12 @@ interface ChangelogEntry {
 }
 
 const BUILTIN_CHANGELOG: ChangelogEntry[] = [
+  {
+    sha: '9ab217f',
+    date: '2026-09-04T17:00:00Z',
+    title: '🚀 Atualização Automática no Aplicativo (Auto-Updater)',
+    description: 'Verificação e instalação de atualizações diretamente no app com 1 clique, barra de download e reinício automático.'
+  },
   {
     sha: '1b8f44d',
     date: '2026-09-04T16:45:00Z',
@@ -57,24 +65,33 @@ const BUILTIN_CHANGELOG: ChangelogEntry[] = [
     date: '2026-09-04T14:30:00Z',
     title: '🎨 Ícone Oficial finante.png no GNOME / Fedora',
     description: 'Adoção dinâmica da identidade visual no menu de aplicativos do Fedora, dock do GNOME e arquivos do sistema.'
-  },
-  {
-    sha: '70834a5',
-    date: '2026-09-04T14:15:00Z',
-    title: '⚡ Verificação de Atualizações & Sincronização',
-    description: 'Botão de verificação de atualizações em Configurações com limpeza de caches e sincronização instantânea.'
   }
 ];
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, currentVersion }) => {
   const [entries, setEntries] = useState<ChangelogEntry[]>(BUILTIN_CHANGELOG);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [availableUpdate, setAvailableUpdate] = useState<Update | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateStatusText, setUpdateStatusText] = useState('');
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLatestCommits();
+    checkForNativeUpdate();
   }, []);
+
+  const checkForNativeUpdate = async () => {
+    try {
+      const update = await checkAppUpdate();
+      if (update) {
+        setAvailableUpdate(update);
+      }
+    } catch (err: any) {
+      console.warn('Native update check failed or not in desktop environment:', err);
+    }
+  };
 
   const fetchLatestCommits = () => {
     setLoading(true);
@@ -98,28 +115,44 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
         setLoading(false);
       })
       .catch(() => {
-        // Gracefully use the built-in changelog
         setEntries(BUILTIN_CHANGELOG);
         setLoading(false);
       });
   };
 
-  const handleApplyUpdate = async () => {
-    setUpdating(true);
+  const handleInstallNativeUpdate = async () => {
+    if (!availableUpdate) return;
+    setIsUpdating(true);
+    setUpdateError(null);
+    setUpdateStatusText('Iniciando download da atualização...');
+    setUpdateProgress(5);
+
     try {
-      // Clear Service Worker & browser caches
+      await downloadAndApplyUpdate(availableUpdate, (p) => {
+        setUpdateProgress(p.percentage);
+        setUpdateStatusText(`Baixando atualização... ${p.percentage}%`);
+      });
+      setUpdateProgress(100);
+      setUpdateStatusText('Atualização instalada com sucesso! Reiniciando...');
+    } catch (err: any) {
+      console.error('Update installation failed:', err);
+      setUpdateError(err?.message || 'Falha ao instalar atualização.');
+      setIsUpdating(false);
+    }
+  };
+
+  const handleReloadApp = async () => {
+    setIsUpdating(true);
+    setUpdateStatusText('Limpando cache e recarregando...');
+    try {
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
-      
-      setUpdateSuccess(true);
       setTimeout(() => {
-        // Force full reload bypassing cache
         window.location.reload();
-      }, 1000);
-    } catch (err) {
-      console.warn('Cache clear error, reloading anyway:', err);
+      }, 500);
+    } catch {
       window.location.reload();
     }
   };
@@ -151,32 +184,85 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
                 </span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Últimas melhorias e notas de versão instaladas no Finante
+                Notas de versão, melhorias e atualização direta do Finante
               </p>
             </div>
           </div>
         </div>
 
         {/* Update Banner */}
-        <div className="px-6 py-3.5 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">
-              {updateSuccess ? 'Aplicativo atualizado! Recarregando...' : `Versão v${currentVersion} instalada e pronta`}
-            </span>
-          </div>
+        {availableUpdate ? (
+          <div className="p-4 bg-gradient-to-r from-blue-500/15 via-indigo-500/10 to-emerald-500/15 border-b border-blue-500/20 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <ArrowUpCircle size={20} className="text-blue-500 shrink-0 animate-bounce" />
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white">
+                    Nova versão disponível: v{availableUpdate.version}
+                  </h4>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Instale a versão mais recente diretamente com 1 clique
+                  </p>
+                </div>
+              </div>
 
-          <button
-            type="button"
-            onClick={handleApplyUpdate}
-            disabled={updating}
-            style={{ backgroundColor: '#34C759' }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white font-semibold text-xs shadow-xs hover:opacity-95 active:scale-95 transition-all shrink-0 cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw size={13} className={updating ? 'animate-spin' : ''} />
-            <span>{updating ? 'Atualizando...' : 'Recarregar App'}</span>
-          </button>
-        </div>
+              {!isUpdating && (
+                <button
+                  type="button"
+                  onClick={handleInstallNativeUpdate}
+                  style={{ backgroundColor: '#007AFF' }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white font-bold text-xs shadow-md hover:opacity-95 active:scale-95 transition-all shrink-0 cursor-pointer"
+                >
+                  <DownloadCloud size={14} />
+                  <span>Atualizar Agora</span>
+                </button>
+              )}
+            </div>
+
+            {/* Progress Bar when updating */}
+            {isUpdating && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
+                  <span>{updateStatusText}</span>
+                  <span>{updateProgress}%</span>
+                </div>
+                <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${Math.max(5, updateProgress)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {updateError && (
+              <div className="flex items-center gap-2 text-rose-500 text-xs font-semibold">
+                <AlertCircle size={14} />
+                <span>{updateError}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="px-6 py-3.5 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+              <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">
+                {isUpdating ? updateStatusText : `Você está na versão mais recente (v${currentVersion})`}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleReloadApp}
+              disabled={isUpdating}
+              style={{ backgroundColor: '#34C759' }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white font-semibold text-xs shadow-xs hover:opacity-95 active:scale-95 transition-all shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={isUpdating ? 'animate-spin' : ''} />
+              <span>{isUpdating ? 'Recarregando...' : 'Recarregar App'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Content - Changelog List */}
         <div className="p-6 overflow-y-auto flex-1 space-y-3">
@@ -232,3 +318,4 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
     </div>
   );
 };
+
