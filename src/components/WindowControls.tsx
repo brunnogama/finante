@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Minus, Square, Copy, X } from 'lucide-react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { isTauri } from '@tauri-apps/api/core';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 
 export const WindowControls: React.FC = () => {
   const isDesktop = typeof window !== 'undefined' && (isTauri() || '__TAURI_INTERNALS__' in window);
@@ -9,19 +8,14 @@ export const WindowControls: React.FC = () => {
 
   useEffect(() => {
     if (!isDesktop) return;
-    try {
-      const appWindow = getCurrentWindow();
-      appWindow.isMaximized().then(setIsMaximized).catch(() => {});
+    invoke<boolean>('app_is_maximized').then(setIsMaximized).catch(() => {});
 
-      const handleResize = () => {
-        appWindow.isMaximized().then(setIsMaximized).catch(() => {});
-      };
+    const handleResize = () => {
+      invoke<boolean>('app_is_maximized').then(setIsMaximized).catch(() => {});
+    };
 
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    } catch {
-      // Ignore if not in desktop window context
-    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [isDesktop]);
 
   if (!isDesktop) return null;
@@ -29,8 +23,7 @@ export const WindowControls: React.FC = () => {
   const handleMinimize = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const appWindow = getCurrentWindow();
-      await appWindow.minimize();
+      await invoke('app_minimize');
     } catch (err) {
       console.warn('Minimize error:', err);
     }
@@ -39,10 +32,9 @@ export const WindowControls: React.FC = () => {
   const handleToggleMaximize = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const appWindow = getCurrentWindow();
-      await appWindow.toggleMaximize();
-      const maximized = await appWindow.isMaximized();
-      setIsMaximized(maximized);
+      await invoke('app_toggle_maximize');
+      const max = await invoke<boolean>('app_is_maximized');
+      setIsMaximized(max);
     } catch (err) {
       console.warn('Toggle maximize error:', err);
     }
@@ -51,8 +43,7 @@ export const WindowControls: React.FC = () => {
   const handleClose = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const appWindow = getCurrentWindow();
-      await appWindow.close();
+      await invoke('app_close');
     } catch (err) {
       console.warn('Close window error:', err);
     }

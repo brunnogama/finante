@@ -3,7 +3,7 @@ use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct OAuthPayload {
@@ -189,12 +189,56 @@ fn start_oauth_server(app_handle: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn app_minimize(app_handle: AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        window.minimize().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn app_toggle_maximize(app_handle: AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        if window.is_maximized().unwrap_or(false) {
+            window.unmaximize().map_err(|e| e.to_string())?;
+        } else {
+            window.maximize().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn app_close(app_handle: AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        window.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn app_is_maximized(app_handle: AppHandle) -> Result<bool, String> {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        Ok(window.is_maximized().unwrap_or(false))
+    } else {
+        Ok(false)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![open_browser, start_oauth_server])
+        .invoke_handler(tauri::generate_handler![
+            open_browser,
+            start_oauth_server,
+            app_minimize,
+            app_toggle_maximize,
+            app_close,
+            app_is_maximized
+        ])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(

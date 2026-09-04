@@ -3,8 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Bell, ChevronLeft, Inbox, Moon, Sun } from 'lucide-react';
 import { FinanteIcon } from './FinanteIcon';
 import { WindowControls } from './WindowControls';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { isTauri } from '@tauri-apps/api/core';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 
 interface HeaderBarProps {
   title?: string;
@@ -52,8 +51,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ title = 'Finante' }) => {
     }
     if (isDesktop) {
       try {
-        const appWindow = getCurrentWindow();
-        await appWindow.toggleMaximize();
+        await invoke('app_toggle_maximize');
       } catch (err) {
         console.warn('Double click maximize error:', err);
       }
