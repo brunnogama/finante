@@ -732,7 +732,7 @@ export const Investments: React.FC = () => {
                 </button>
 
                 {isCategoryDropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl p-1 shadow-2xl z-50 animate-[scaleIn_0.12s_ease]">
+                  <div className="absolute left-0 right-0 mt-1 adw-popover rounded-xl p-1.5 shadow-2xl z-50 animate-[scaleIn_0.12s_ease]">
                     {INVESTMENT_CATEGORIES.map(c => (
                       <button
                         key={c}
@@ -741,17 +741,17 @@ export const Investments: React.FC = () => {
                           setCategory(c);
                           setIsCategoryDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                           category === c 
                             ? 'bg-[#3584e4] text-white font-bold' 
                             : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[c] || '#888' }} />
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[c] || '#888' }} />
                           <span>{c}</span>
                         </div>
-                        {category === c && <Check size={14} className="text-white" />}
+                        {category === c && <Check size={16} className="text-white" />}
                       </button>
                     ))}
                   </div>

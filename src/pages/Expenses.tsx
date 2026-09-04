@@ -713,33 +713,33 @@ export const Expenses: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-              className="flex items-center justify-between gap-2 px-3 py-1.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-black/10 dark:hover:bg-white/10 transition-all cursor-pointer"
+              className="flex items-center justify-between gap-2 px-3.5 py-2 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-black/10 dark:hover:bg-white/10 transition-all cursor-pointer"
             >
-              <div className="flex items-center gap-1.5">
-                <Calendar size={13} className="text-zinc-400" />
+              <div className="flex items-center gap-2">
+                <Calendar size={15} className="text-zinc-400" />
                 <span>{formatMonthLabel(selectedMonth)}</span>
               </div>
-              <ChevronDown size={13} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isMonthDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-60 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
+              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-64 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-72 overflow-y-auto">
                 <button
                   onClick={() => {
                     setSelectedMonth('all');
                     setIsMonthDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
                     selectedMonth === 'all' 
                       ? 'font-bold text-white bg-[#3584e4]' 
                       : 'text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
                   <span>Todos os Meses</span>
-                  {selectedMonth === 'all' && <Check size={14} className="text-white" />}
+                  {selectedMonth === 'all' && <Check size={16} className="text-white" />}
                 </button>
                 
-                <div className="h-px bg-black/5 dark:bg-white/10 my-1" />
+                <div className="h-px bg-black/10 dark:bg-white/10 my-1" />
 
                 {availableMonths.map((m) => (
                   <button
@@ -748,14 +748,14 @@ export const Expenses: React.FC = () => {
                       setSelectedMonth(m);
                       setIsMonthDropdownOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
+                    className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
                       selectedMonth === m 
                         ? 'font-bold text-white bg-[#3584e4]' 
                         : 'text-zinc-700 dark:text-zinc-300'
                     }`}
                   >
                     <span>{formatMonthLabel(m)}</span>
-                    {selectedMonth === m && <Check size={14} className="text-white" />}
+                    {selectedMonth === m && <Check size={16} className="text-white" />}
                   </button>
                 ))}
               </div>
@@ -767,31 +767,31 @@ export const Expenses: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              className="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 border border-black/10 dark:border-white/10 text-xs font-semibold rounded-lg px-3 py-1.5 outline-none flex items-center gap-1.5 transition-all cursor-pointer"
+              className="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 border border-black/10 dark:border-white/10 text-sm font-semibold rounded-lg px-3.5 py-2 outline-none flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Tag size={13} className="text-zinc-400" />
+              <Tag size={15} className="text-zinc-400" />
               <span>{selectedCategory === 'Todas' ? 'Todas Categorias' : selectedCategory}</span>
-              <ChevronDown size={13} className={`text-zinc-400 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isCategoryDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-56 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl p-1 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
+              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-60 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 max-h-72 overflow-y-auto">
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedCategory('Todas');
                     setIsCategoryDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                  className={`w-full text-left px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                     selectedCategory === 'Todas' 
                       ? 'bg-[#3584e4] text-white font-bold' 
                       : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                   }`}
                 >
                   <span>Todas Categorias</span>
-                  {selectedCategory === 'Todas' && <Check size={14} className="text-white" />}
+                  {selectedCategory === 'Todas' && <Check size={16} className="text-white" />}
                 </button>
-                <div className="my-1 border-t border-black/5 dark:border-white/10" />
+                <div className="my-1 border-t border-black/10 dark:border-white/10" />
                 {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
                   <button
                     key={cat}
@@ -800,14 +800,14 @@ export const Expenses: React.FC = () => {
                       setSelectedCategory(cat);
                       setIsCategoryDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                    className={`w-full text-left px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                       selectedCategory === cat 
                         ? 'bg-[#3584e4] text-white font-bold' 
                         : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                     }`}
                   >
                     <span>{cat}</span>
-                    {selectedCategory === cat && <Check size={14} className="text-white" />}
+                    {selectedCategory === cat && <Check size={16} className="text-white" />}
                   </button>
                 ))}
               </div>
@@ -1463,14 +1463,14 @@ export const Expenses: React.FC = () => {
                           setCompany(e.target.value);
                           setIsCompanySuggestionsOpen(true);
                         }}
-                        className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-semibold"
+                        className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/40 font-semibold"
                       />
                     </div>
 
                     {/* Company Suggestions Dropdown */}
                     {isCompanySuggestionsOpen && companySuggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-44 overflow-y-auto">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-3 py-1">
+                      <div className="absolute left-0 right-0 mt-1 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl p-1.5 shadow-2xl z-50 max-h-52 overflow-y-auto">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-3 py-1.5">
                           Empresas Cadastradas
                         </div>
                         {companySuggestions.map(comp => (
@@ -1478,13 +1478,13 @@ export const Expenses: React.FC = () => {
                             key={comp.id || comp.name}
                             type="button"
                             onClick={() => handleSelectRegisteredCompany(comp)}
-                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group cursor-pointer"
+                            className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/10 transition-colors group cursor-pointer"
                           >
-                            <div className="flex items-center gap-2">
-                              <CategoryIcon type={comp.default_type} size={13} containerClassName="w-6 h-6 rounded-lg" />
-                              <span className="font-bold text-zinc-900 dark:text-white">{comp.name}</span>
+                            <div className="flex items-center gap-2.5">
+                              <CategoryIcon type={comp.default_type} size={15} containerClassName="w-7 h-7 rounded-lg" />
+                              <span className="font-semibold text-zinc-900 dark:text-white">{comp.name}</span>
                             </div>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300 group-hover:bg-[#3584e4] group-hover:text-white transition-colors">
                               {comp.default_type}
                             </span>
                           </button>
@@ -1509,7 +1509,7 @@ export const Expenses: React.FC = () => {
                             setManageModalInitialTab('types');
                             setIsManageModalOpen(true);
                           }}
-                          className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-xs font-bold text-[#3584e4] hover:underline cursor-pointer"
                         >
                           + Novo
                         </button>
@@ -1517,14 +1517,14 @@ export const Expenses: React.FC = () => {
                       <button 
                         type="button"
                         onClick={() => setIsFormCategoryDropdownOpen(!isFormCategoryDropdownOpen)}
-                        className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between font-semibold"
+                        className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between font-semibold cursor-pointer"
                       >
                         <span className="truncate">{expenseType}</span>
-                        <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isFormCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown size={16} className={`text-zinc-400 transition-transform duration-200 ${isFormCategoryDropdownOpen ? 'rotate-180' : ''}`} />
                       </button>
 
                       {isFormCategoryDropdownOpen && (
-                        <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
+                        <div className="absolute left-0 right-0 mt-1 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl p-1.5 shadow-2xl z-50 max-h-52 overflow-y-auto">
                           {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
                             <button
                               key={cat}
@@ -1533,14 +1533,14 @@ export const Expenses: React.FC = () => {
                                 setExpenseType(cat);
                                 setIsFormCategoryDropdownOpen(false);
                               }}
-                              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                                 expenseType === cat 
-                                  ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold' 
-                                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                  ? 'bg-[#3584e4]/15 text-[#3584e4] font-bold' 
+                                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                               }`}
                             >
                               <span>{cat}</span>
-                              {expenseType === cat && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
+                              {expenseType === cat && <Check size={16} className="text-[#3584e4]" />}
                             </button>
                           ))}
                         </div>

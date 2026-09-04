@@ -15,7 +15,7 @@
 
   --adw-popover-bg: #ffffff;
   --adw-popover-fg: #2e3436;
-  --adw-dialog-bg: #fafafa;
+  --adw-dialog-bg: #ffffff;
 
   /* GNOME Palette */
   --adw-accent: #3584e4;          /* Blue 3 */
@@ -43,8 +43,8 @@
   --adw-border-strong: rgba(0, 0, 0, 0.15);
 
   --adw-radius-window: 16px;
-  --adw-radius-card: 12px;
-  --adw-radius-button: 8px;
+  --adw-radius-card: 14px;
+  --adw-radius-button: 10px;
   --adw-radius-pill: 9999px;
 }
 
@@ -54,32 +54,32 @@
   --adw-view-bg: #1e1e1e;
   --adw-headerbar-bg: #303030;
   --adw-headerbar-fg: #ffffff;
-  --adw-headerbar-border: rgba(0, 0, 0, 0.35);
+  --adw-headerbar-border: rgba(0, 0, 0, 0.4);
 
-  --adw-card-bg: rgba(255, 255, 255, 0.07);
+  --adw-card-bg: #2e2e2e;
   --adw-card-fg: #ffffff;
-  --adw-card-border: rgba(255, 255, 255, 0.08);
+  --adw-card-border: rgba(255, 255, 255, 0.09);
 
   --adw-popover-bg: #383838;
   --adw-popover-fg: #ffffff;
-  --adw-dialog-bg: #303030;
+  --adw-dialog-bg: #2e2e2e;
 
   --adw-accent: #3584e4;
   --adw-accent-hover: #62a0ea;
-  --adw-accent-bg: rgba(53, 132, 228, 0.2);
+  --adw-accent-bg: rgba(53, 132, 228, 0.22);
   --adw-accent-fg: #ffffff;
 
   --adw-destructive: #e01b24;
   --adw-destructive-hover: #ed333b;
-  --adw-destructive-bg: rgba(224, 27, 36, 0.2);
+  --adw-destructive-bg: rgba(224, 27, 36, 0.22);
 
   --adw-success: #2ec27e;
   --adw-success-hover: #57e389;
-  --adw-success-bg: rgba(46, 194, 126, 0.2);
+  --adw-success-bg: rgba(46, 194, 126, 0.22);
 
   --adw-warning: #e5a50a;
   --adw-warning-hover: #f6d32d;
-  --adw-warning-bg: rgba(229, 165, 10, 0.2);
+  --adw-warning-bg: rgba(229, 165, 10, 0.22);
 
   --adw-button-bg: rgba(255, 255, 255, 0.08);
   --adw-button-hover-bg: rgba(255, 255, 255, 0.14);
@@ -96,9 +96,22 @@
 
 body {
   font-family: 'Cantarell', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--adw-card-fg);
+  background-color: var(--adw-window-bg);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Libadwaita Cards */
+.adw-card {
+  background-color: var(--adw-card-bg);
+  color: var(--adw-card-fg);
+  border: 1px solid var(--adw-card-border);
+  border-radius: var(--adw-radius-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 /* Libadwaita Boxed List Pattern */
@@ -107,11 +120,11 @@ body {
   border: 1px solid var(--adw-card-border);
   border-radius: var(--adw-radius-card);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .boxed-list-row {
-  padding: 12px 16px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -131,14 +144,24 @@ body {
   background-color: var(--adw-button-hover-bg);
 }
 
+/* Libadwaita Popovers & Menus (Solid Opaque, Elevated) */
+.adw-popover {
+  background-color: var(--adw-popover-bg) !important;
+  color: var(--adw-popover-fg) !important;
+  border: 1px solid var(--adw-border-strong) !important;
+  border-radius: var(--adw-radius-card);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+}
+
 /* Libadwaita Buttons */
 .adw-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 14px;
-  font-size: 13px;
+  padding: 8px 16px;
+  font-size: 14px;
   font-weight: 600;
   border-radius: var(--adw-radius-button);
   border: 1px solid transparent;
@@ -162,7 +185,7 @@ body {
   background-color: var(--adw-accent);
   color: #ffffff;
   border-color: rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 2px rgba(53, 132, 228, 0.3);
+  box-shadow: 0 1px 3px rgba(53, 132, 228, 0.3);
 }
 
 .adw-btn.suggested-action:hover {
@@ -173,7 +196,7 @@ body {
   background-color: var(--adw-destructive);
   color: #ffffff;
   border-color: rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 2px rgba(224, 27, 36, 0.3);
+  box-shadow: 0 1px 3px rgba(224, 27, 36, 0.3);
 }
 
 .adw-btn.destructive-action:hover {
@@ -226,21 +249,21 @@ body {
   display: inline-flex;
   align-items: center;
   background-color: var(--adw-button-bg);
-  padding: 3px;
-  border-radius: 10px;
-  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 3px;
 }
 
 .adw-view-switcher-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 9px;
   color: inherit;
-  opacity: 0.75;
+  opacity: 0.8;
   transition: all 0.15s ease;
   cursor: pointer;
   border: none;
@@ -255,7 +278,7 @@ body {
 .adw-view-switcher-item.active {
   opacity: 1;
   background-color: var(--adw-card-bg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Entries (Text Inputs) */
@@ -279,11 +302,13 @@ body {
 
 /* Libadwaita Dialog */
 .adw-dialog {
-  background-color: var(--adw-dialog-bg);
-  border: 1px solid var(--adw-card-border);
+  background-color: var(--adw-dialog-bg) !important;
+  color: var(--adw-headerbar-fg) !important;
+  border: 1px solid var(--adw-border-strong);
   border-radius: var(--adw-radius-window);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
   overflow: hidden;
+  z-index: 50;
 }
 
 /* HeaderBar */
@@ -294,7 +319,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 14px;
   flex-shrink: 0;
   user-select: none;
 }
@@ -310,11 +335,11 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(128, 128, 128, 0.3);
+  background: rgba(128, 128, 128, 0.35);
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 128, 128, 0.5);
+  background: rgba(128, 128, 128, 0.55);
 }
 

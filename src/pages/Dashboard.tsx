@@ -166,7 +166,7 @@ export const Dashboard: React.FC = () => {
             </button>
 
             {isPeriodDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl p-1.5 shadow-2xl z-50 animate-[scaleIn_0.12s_ease]">
+              <div className="absolute right-0 mt-2 w-52 adw-popover rounded-xl p-1.5 shadow-2xl z-50 animate-[scaleIn_0.12s_ease]">
                 {periods.map(p => (
                   <button
                     key={p}
@@ -175,14 +175,14 @@ export const Dashboard: React.FC = () => {
                       setSelectedPeriod(p);
                       setIsPeriodDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                       selectedPeriod === p 
                         ? 'bg-[#3584e4] text-white font-bold' 
                         : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                     }`}
                   >
                     <span>{p}</span>
-                    {selectedPeriod === p && <Check size={14} className="text-white" />}
+                    {selectedPeriod === p && <Check size={16} className="text-white" />}
                   </button>
                 ))}
               </div>

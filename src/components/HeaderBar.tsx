@@ -62,7 +62,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({ title }) => {
 
         {/* Notifications Dropdown (Libadwaita Popover) */}
         {showNotifications && (
-          <div className="absolute top-full mt-2 right-0 w-80 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 z-50">
+          <div className="absolute top-full mt-2 right-0 w-80 adw-popover rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 z-50">
             <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
               <h3 className="font-bold text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Notificações</h3>
               {notifications.length > 0 && (

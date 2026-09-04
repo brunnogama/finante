@@ -362,23 +362,23 @@ export const Income: React.FC = () => {
           </button>
 
           {isMonthDropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-60 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-xl shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
+            <div className="absolute right-0 mt-1.5 w-64 adw-popover rounded-xl shadow-2xl z-50 p-1.5 overflow-hidden animate-[scaleIn_0.12s_ease] max-h-72 overflow-y-auto">
               <button
                 onClick={() => {
                   setSelectedMonth('all');
                   setIsMonthDropdownOpen(false);
                 }}
-                className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-left transition-colors cursor-pointer ${
                   selectedMonth === 'all' 
                     ? 'font-bold text-white bg-[#3584e4]' 
-                    : 'text-zinc-700 dark:text-zinc-300'
+                    : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                 }`}
               >
                 <span>Todos os Meses</span>
-                {selectedMonth === 'all' && <Check size={14} className="text-white" />}
+                {selectedMonth === 'all' && <Check size={16} className="text-white" />}
               </button>
               
-              <div className="h-px bg-black/5 dark:bg-white/10 my-1" />
+              <div className="h-px bg-black/10 dark:bg-white/10 my-1" />
 
               {availableMonths.map((m) => (
                 <button
@@ -387,14 +387,14 @@ export const Income: React.FC = () => {
                     setSelectedMonth(m);
                     setIsMonthDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-1.5 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold text-left transition-colors cursor-pointer ${
                     selectedMonth === m 
                       ? 'font-bold text-white bg-[#3584e4]' 
-                      : 'text-zinc-700 dark:text-zinc-300'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
                   }`}
                 >
                   <span>{formatMonthLabel(m)}</span>
-                  {selectedMonth === m && <Check size={14} className="text-white" />}
+                  {selectedMonth === m && <Check size={16} className="text-white" />}
                 </button>
               ))}
             </div>
