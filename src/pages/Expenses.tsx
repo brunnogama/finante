@@ -20,7 +20,8 @@ import {
   PiggyBank,
   AlertTriangle,
   FileText,
-  Flame
+  Flame,
+  CreditCard
 } from 'lucide-react';
 import { 
   getExpenses, 
@@ -81,6 +82,8 @@ export const Expenses: React.FC = () => {
   const [company, setCompany] = useState('');
   const [amountToPayInput, setAmountToPayInput] = useState('');
   const [amountPaidInput, setAmountPaidInput] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'Crédito' | 'Débito' | 'Boleto'>('PIX');
+  const [isPaymentSectionOpen, setIsPaymentSectionOpen] = useState(false);
   const [excessType, setExcessType] = useState<'late_fee' | 'overpayment'>('late_fee');
   const [saveCompanyToFavorites, setSaveCompanyToFavorites] = useState(true);
 
@@ -240,6 +243,8 @@ export const Expenses: React.FC = () => {
     setEditingId(null);
     setDueDate(new Date().toISOString().split('T')[0]);
     setPaidDate(new Date().toISOString().split('T')[0]);
+    setPaymentMethod('PIX');
+    setIsPaymentSectionOpen(false);
     setNotes('');
     setExcessType('late_fee');
     setExpenseType(types[0] || 'Moradia');
@@ -257,15 +262,18 @@ export const Expenses: React.FC = () => {
   };
 
   const handleOpenEditModal = (expense: ExpenseRecord) => {
+    const hasPayment = Number(expense.paid_amount || 0) > 0;
     setEditingId(expense.id || null);
     setDueDate(expense.due_date || new Date().toISOString().split('T')[0]);
     setPaidDate(expense.paid_date || (expense.paid_amount ? expense.due_date : new Date().toISOString().split('T')[0]));
+    setPaymentMethod((expense.payment_method as any) || 'PIX');
+    setIsPaymentSectionOpen(hasPayment);
     setNotes(expense.notes || '');
     setExcessType(expense.excess_type || (expense.paid_date && expense.due_date && expense.paid_date > expense.due_date ? 'late_fee' : 'overpayment'));
     setExpenseType(expense.type || (types[0] || 'Moradia'));
     setCompany(expense.company || expense.description || '');
     setAmountToPayInput(formatCurrency(expense.amount || 0));
-    setAmountPaidInput(formatCurrency(expense.paid_amount || 0));
+    setAmountPaidInput(hasPayment ? formatCurrency(expense.paid_amount || 0) : '');
     setIsFormCategoryDropdownOpen(false);
     setIsCompanySuggestionsOpen(false);
     setSaveCompanyToFavorites(false);
@@ -309,17 +317,20 @@ export const Expenses: React.FC = () => {
       }
     }
 
+    const actualPaidAmount = isPaymentSectionOpen ? currentAmountPaid : 0;
+
     const payload: ExpenseRecord = {
       company: cleanCompany,
       description: cleanCompany,
       type: expenseType,
       due_date: dueDate,
-      paid_date: currentAmountPaid > 0 ? (paidDate || dueDate) : undefined,
+      paid_date: actualPaidAmount > 0 ? (paidDate || dueDate) : undefined,
+      payment_method: actualPaidAmount > 0 ? paymentMethod : undefined,
       notes: notes.trim(),
-      excess_type: currentAmountPaid > currentAmountToPay ? excessType : undefined,
+      excess_type: actualPaidAmount > currentAmountToPay ? excessType : undefined,
       amount: currentAmountToPay,
-      paid_amount: currentAmountPaid,
-      status: currentAmountPaid >= currentAmountToPay ? 'paid' : 'pending'
+      paid_amount: actualPaidAmount,
+      status: actualPaidAmount >= currentAmountToPay && currentAmountToPay > 0 ? 'paid' : 'pending'
     };
 
     if (editingId) {
@@ -342,14 +353,17 @@ export const Expenses: React.FC = () => {
 
   const handleQuickPayFull = async (expense: ExpenseRecord) => {
     if (!expense.id) return;
-    await updateExpense(expense.id, {
+    const today = new Date().toISOString().split('T')[0];
+    const updatePayload = {
       paid_amount: expense.amount,
-      status: 'paid'
-    });
+      paid_date: today,
+      payment_method: expense.payment_method || 'PIX',
+      status: 'paid' as const
+    };
+    await updateExpense(expense.id, updatePayload);
     setSelectedExpense({
       ...expense,
-      paid_amount: expense.amount,
-      status: 'paid'
+      ...updatePayload
     });
     await loadExpensesOnly();
   };
@@ -911,8 +925,13 @@ export const Expenses: React.FC = () => {
                                   </span>
                                 </div>
                                 {paid > 0 && exp.paid_date && (
-                                  <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1.5">
+                                  <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex flex-wrap items-center gap-1.5">
                                     <span>Pago em {formatDateBR(exp.paid_date)}</span>
+                                    {exp.payment_method && (
+                                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.2 rounded-md">
+                                        {exp.payment_method}
+                                      </span>
+                                    )}
                                     {lateFee > 0 && (
                                       <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
                                         +{formatCurrency(lateFee)} Juros
@@ -1121,18 +1140,29 @@ export const Expenses: React.FC = () => {
                   </span>
                 </div>
                 {selectedExpense.paid_date && Number(selectedExpense.paid_amount || 0) > 0 && (
-                  <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
-                    <span className="text-zinc-400">Data de Pagamento:</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                      <CheckCircle2 size={14} />
-                      {formatDateBR(selectedExpense.paid_date)}
-                      {selectedExpense.paid_date > selectedExpense.due_date && (
-                        <span className="text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">
-                          Após Vencimento
+                  <>
+                    <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
+                      <span className="text-zinc-400">Data de Pagamento:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 size={14} />
+                        {formatDateBR(selectedExpense.paid_date)}
+                        {selectedExpense.paid_date > selectedExpense.due_date && (
+                          <span className="text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">
+                            Após Vencimento
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {selectedExpense.payment_method && (
+                      <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
+                        <span className="text-zinc-400">Meio de Pagamento:</span>
+                        <span className="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                          <CreditCard size={14} className="text-emerald-500" />
+                          {selectedExpense.payment_method}
                         </span>
-                      )}
-                    </span>
-                  </div>
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
                   <span className="text-zinc-400">Categoria:</span>
@@ -1388,162 +1418,25 @@ export const Expenses: React.FC = () => {
                 </div>
               </div>
 
-              {/* Grid: Valor a Pagar & Valor Pago */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                    Valor a Pagar *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
-                      R$
-                    </span>
-                    <input 
-                      type="text"
-                      required
-                      placeholder="0,00"
-                      value={amountToPayInput.replace('R$', '').trim()}
-                      onChange={handleAmountToPayChange}
-                      className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                      Valor Pago
-                    </label>
-                    {currentAmountToPay > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setAmountPaidInput(formatCurrency(currentAmountToPay))}
-                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                      >
-                        Pagar Total
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
-                      R$
-                    </span>
-                    <input 
-                      type="text"
-                      placeholder="0,00"
-                      value={amountPaidInput.replace('R$', '').trim()}
-                      onChange={handleAmountPaidChange}
-                      className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                    />
-                  </div>
+              {/* Grid: Valor a Pagar & Observações */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                  Valor a Pagar *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
+                    R$
+                  </span>
+                  <input 
+                    type="text"
+                    required
+                    placeholder="0,00"
+                    value={amountToPayInput.replace('R$', '').trim()}
+                    onChange={handleAmountToPayChange}
+                    className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  />
                 </div>
               </div>
-
-              {/* Data de Pagamento (quando houver pagamento) */}
-              {currentAmountPaid > 0 && (
-                <div className="animate-in fade-in duration-150 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                        Data de Pagamento *
-                      </label>
-                      <DatePicker 
-                        value={paidDate} 
-                        onChange={(d) => setPaidDate(d)} 
-                        required 
-                      />
-                    </div>
-                    <div className="flex flex-col justify-end">
-                      <div className="text-xs pb-2.5">
-                        {paidDate && dueDate && paidDate > dueDate ? (
-                          <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
-                            <AlertTriangle size={14} className="shrink-0" />
-                            Pago após a data de vencimento
-                          </span>
-                        ) : (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-                            <CheckCircle2 size={14} className="shrink-0" />
-                            Pago em dia
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Classificação da Diferença Paga a Mais */}
-                  {currentAmountPaid > currentAmountToPay && (
-                    <div className="p-3.5 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 space-y-2.5 animate-in fade-in duration-150">
-                      <div className="flex items-start gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                          <AlertTriangle size={13} strokeWidth={2.5} />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-tight">
-                            Diferença paga a mais: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">+{formatCurrency(currentAmountPaid - currentAmountToPay)}</span>
-                          </h4>
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                            Como você deseja categorizar essa quantia excedente?
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-                        {/* Opção: Multa e Juros */}
-                        <button
-                          type="button"
-                          onClick={() => setExcessType('late_fee')}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                            excessType === 'late_fee'
-                              ? 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500 text-rose-900 dark:text-rose-100 ring-1 ring-rose-500'
-                              : 'bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
-                              <Flame size={13} />
-                              <span>Multa e Juros</span>
-                            </div>
-                            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                              excessType === 'late_fee' ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-400'
-                            }`}>
-                              {excessType === 'late_fee' && <Check size={8} strokeWidth={3} />}
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
-                            Soma automaticamente como despesa de Multa e Juros nos relatórios.
-                          </p>
-                        </button>
-
-                        {/* Opção: Pagamento a Maior */}
-                        <button
-                          type="button"
-                          onClick={() => setExcessType('overpayment')}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                            excessType === 'overpayment'
-                              ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500 text-blue-900 dark:text-blue-100 ring-1 ring-blue-500'
-                              : 'bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
-                              <Wallet size={13} />
-                              <span>Pagamento a Maior</span>
-                            </div>
-                            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                              excessType === 'overpayment' ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-400'
-                            }`}>
-                              {excessType === 'overpayment' && <Check size={8} strokeWidth={3} />}
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
-                            Registra normalmente sem incidência de juros ou multas por atraso.
-                          </p>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* Observações Field */}
               <div>
@@ -1559,6 +1452,226 @@ export const Expenses: React.FC = () => {
                 />
               </div>
 
+              {/* Option to save company if new */}
+              {!editingId && company.trim() && !companies.some(c => c.name.toLowerCase() === company.trim().toLowerCase()) && (
+                <label className="flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
+                  <input 
+                    type="checkbox"
+                    checked={saveCompanyToFavorites}
+                    onChange={(e) => setSaveCompanyToFavorites(e.target.checked)}
+                    className="rounded border-zinc-300 dark:border-zinc-700 text-emerald-600 focus:ring-0"
+                  />
+                  <span className="flex items-center gap-1">
+                    <BookmarkPlus size={14} className="text-emerald-500" />
+                    Salvar "{company.trim()}" em Fornecedores favoritos
+                  </span>
+                </label>
+              )}
+
+              {/* Divisor / Seção de Pagamento Separada */}
+              <div className="pt-1">
+                {!isPaymentSectionOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPaymentSectionOpen(true);
+                      if (!amountPaidInput && currentAmountToPay > 0) {
+                        setAmountPaidInput(formatCurrency(currentAmountToPay));
+                      }
+                    }}
+                    className="w-full py-3 px-4 rounded-2xl bg-zinc-100/80 hover:bg-zinc-200/80 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-dashed border-emerald-500/50 hover:border-emerald-500 text-zinc-700 dark:text-zinc-200 text-xs font-bold flex items-center justify-between transition-all cursor-pointer group shadow-xs"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Wallet size={16} strokeWidth={2.3} />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold text-zinc-900 dark:text-white">Registrar Pagamento</div>
+                        <div className="text-[11px] font-normal text-zinc-500 dark:text-zinc-400">Informar data, meio (PIX, Boleto, Cartão) e valor pago</div>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                      <Plus size={14} />
+                      Adicionar Pagamento
+                    </span>
+                  </button>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/80 space-y-3.5 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200/80 dark:border-zinc-700/80">
+                      <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-white">
+                        <Wallet size={15} className="text-emerald-500" />
+                        <span>Dados do Pagamento</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPaymentSectionOpen(false);
+                          setAmountPaidInput('');
+                        }}
+                        className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <X size={13} />
+                        <span>Cancelar Pagamento</span>
+                      </button>
+                    </div>
+
+                    {/* Grid: Valor Pago & Meio de Pagamento */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                            Valor Pago *
+                          </label>
+                          {currentAmountToPay > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAmountPaidInput(formatCurrency(currentAmountToPay))}
+                              className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                            >
+                              Pagar Total
+                            </button>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
+                            R$
+                          </span>
+                          <input 
+                            type="text"
+                            placeholder="0,00"
+                            value={amountPaidInput.replace('R$', '').trim()}
+                            onChange={handleAmountPaidChange}
+                            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Meio de Pagamento */}
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                          Meio de Pagamento *
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(['PIX', 'Crédito', 'Débito', 'Boleto'] as const).map((method) => (
+                            <button
+                              key={method}
+                              type="button"
+                              onClick={() => setPaymentMethod(method)}
+                              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                paymentMethod === method
+                                  ? 'bg-emerald-600 text-white shadow-xs'
+                                  : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                              }`}
+                            >
+                              {paymentMethod === method && <Check size={12} strokeWidth={3} />}
+                              <span>{method}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Data de Pagamento */}
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                        Data de Pagamento *
+                      </label>
+                      <DatePicker 
+                        value={paidDate} 
+                        onChange={(d) => setPaidDate(d)} 
+                        required 
+                      />
+                      <div className="text-xs pt-1.5">
+                        {paidDate && dueDate && paidDate > dueDate ? (
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
+                            <AlertTriangle size={14} className="shrink-0" />
+                            Pago após a data de vencimento
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                            <CheckCircle2 size={14} className="shrink-0" />
+                            Pago em dia
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Classificação da Diferença Paga a Mais */}
+                    {currentAmountPaid > currentAmountToPay && (
+                      <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700/80 space-y-2.5 animate-in fade-in duration-150">
+                        <div className="flex items-start gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <AlertTriangle size={13} strokeWidth={2.5} />
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-tight">
+                              Diferença paga a mais: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">+{formatCurrency(currentAmountPaid - currentAmountToPay)}</span>
+                            </h4>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                              Como você deseja categorizar essa quantia excedente?
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                          {/* Opção: Multa e Juros */}
+                          <button
+                            type="button"
+                            onClick={() => setExcessType('late_fee')}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                              excessType === 'late_fee'
+                                ? 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500 text-rose-900 dark:text-rose-100 ring-1 ring-rose-500'
+                                : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                                <Flame size={13} />
+                                <span>Multa e Juros</span>
+                              </div>
+                              <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                excessType === 'late_fee' ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-400'
+                              }`}>
+                                {excessType === 'late_fee' && <Check size={8} strokeWidth={3} />}
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                              Soma automaticamente como despesa de Multa e Juros nos relatórios.
+                            </p>
+                          </button>
+
+                          {/* Opção: Pagamento a Maior */}
+                          <button
+                            type="button"
+                            onClick={() => setExcessType('overpayment')}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                              excessType === 'overpayment'
+                                ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500 text-blue-900 dark:text-blue-100 ring-1 ring-blue-500'
+                                : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+                                <Wallet size={13} />
+                                <span>Pagamento a Maior</span>
+                              </div>
+                              <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                excessType === 'overpayment' ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-400'
+                              }`}>
+                                {excessType === 'overpayment' && <Check size={8} strokeWidth={3} />}
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                              Registra normalmente sem incidência de juros ou multas por atraso.
+                            </p>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Live Saldo Feedback */}
               <div className="p-3.5 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40 flex items-center justify-between">
                 <div>
@@ -1566,21 +1679,21 @@ export const Expenses: React.FC = () => {
                     Saldo Restante Calculado
                   </span>
                   <span className={`text-base font-bold tabular-nums ${
-                    currentFormBalance === 0 && currentAmountToPay > 0 
+                    isPaymentSectionOpen && currentFormBalance === 0 && currentAmountToPay > 0 
                       ? 'text-emerald-600 dark:text-emerald-400' 
                       : 'text-zinc-900 dark:text-white'
                   }`}>
-                    {formatCurrency(currentFormBalance)}
+                    {formatCurrency(isPaymentSectionOpen ? currentFormBalance : currentAmountToPay)}
                   </span>
                 </div>
                 <div>
-                  {currentFormBalance === 0 && currentAmountToPay > 0 ? (
+                  {isPaymentSectionOpen && currentFormBalance === 0 && currentAmountToPay > 0 ? (
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                      Quitada
+                      Quitada ({paymentMethod})
                     </span>
-                  ) : currentAmountPaid > 0 && currentFormBalance > 0 ? (
+                  ) : isPaymentSectionOpen && currentAmountPaid > 0 && currentFormBalance > 0 ? (
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">
-                      Parcial
+                      Parcial ({paymentMethod})
                     </span>
                   ) : (
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">

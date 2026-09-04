@@ -13,12 +13,15 @@ export interface ExpenseRecord {
   paid_amount?: number;
   due_date: string;
   paid_date?: string;
+  payment_method?: 'PIX' | 'Crédito' | 'Débito' | 'Boleto' | string;
   notes?: string;
   excess_type?: 'late_fee' | 'overpayment';
   type: string;
   status: 'pending' | 'paid';
   created_at?: string;
 }
+
+export const DEFAULT_PAYMENT_METHODS = ['PIX', 'Crédito', 'Débito', 'Boleto'] as const;
 
 export interface IncomeRecord {
   id?: number;
@@ -52,6 +55,7 @@ export const getExpenses = async (): Promise<ExpenseRecord[]> => {
       type: item.type || 'Outros',
       due_date: item.due_date || new Date().toISOString().split('T')[0],
       paid_date: item.paid_date || (Number(item.paid_amount || 0) > 0 ? (item.due_date || new Date().toISOString().split('T')[0]) : undefined),
+      payment_method: item.payment_method || (Number(item.paid_amount || 0) > 0 ? 'PIX' : undefined),
       notes: item.notes || '',
       excess_type: item.excess_type || (item.paid_date && item.due_date && item.paid_date.split('T')[0] > item.due_date.split('T')[0] && Number(item.paid_amount || 0) > Number(item.amount || 0) ? 'late_fee' : 'overpayment'),
       status: (item.paid_amount !== undefined && item.paid_amount !== null 
@@ -81,6 +85,7 @@ export const addExpense = async (expense: ExpenseRecord) => {
     paid_amount: paid_amount,
     due_date: expense.due_date,
     paid_date: expense.paid_date || (paid_amount > 0 ? expense.due_date : null),
+    payment_method: paid_amount > 0 ? (expense.payment_method || 'PIX') : null,
     notes: expense.notes?.trim() || '',
     excess_type: expense.excess_type || (paid_amount > amount ? (expense.paid_date && expense.due_date && expense.paid_date > expense.due_date ? 'late_fee' : 'overpayment') : undefined),
     type: expense.type,
