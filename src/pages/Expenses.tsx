@@ -13,6 +13,7 @@ import {
   X, 
   Check, 
   ChevronRight, 
+  ChevronLeft,
   ChevronDown, 
   BookmarkPlus, 
   Wallet, 
@@ -225,8 +226,14 @@ export const Expenses: React.FC = () => {
       const m = extractMonth(item.date);
       if (m) monthSet.add(m);
     });
-    const curMonth = new Date().toISOString().substring(0, 7);
-    monthSet.add(curMonth);
+    
+    // Add past 12 months and future 12 months from now so user can navigate seamlessly
+    const now = new Date();
+    for (let i = -12; i <= 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthSet.add(m);
+    }
 
     return Array.from(monthSet).sort().reverse();
   }, [expenses, incomes]);
@@ -239,6 +246,56 @@ export const Expenses: React.FC = () => {
     const dateObj = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
     const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'long' });
     return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} de ${year}`;
+  };
+
+  const formatMonthShort = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length < 2) return dateStr;
+    const dateObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+    const rawMonth = dateObj.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+    return `${rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1)}/${parts[0].slice(-2)}`;
+  };
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 'all') {
+      setSelectedMonth(currentMonthKey);
+      return;
+    }
+    const parts = selectedMonth.split('-');
+    if (parts.length >= 2) {
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+      d.setMonth(d.getMonth() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      setSelectedMonth(`${y}-${m}`);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 'all') {
+      setSelectedMonth(currentMonthKey);
+      return;
+    }
+    const parts = selectedMonth.split('-');
+    if (parts.length >= 2) {
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+      d.setMonth(d.getMonth() + 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      setSelectedMonth(`${y}-${m}`);
+    }
+  };
+
+  // Helper to check if an expense is overdue from a previous month relative to real-world current month
+  const isOverdueFromPast = (exp: ExpenseRecord): boolean => {
+    const expMonth = extractMonth(exp.due_date);
+    if (!expMonth) return false;
+    const isPastMonth = expMonth < currentMonthKey;
+    const amount = Number(exp.amount || 0);
+    const paid = Number(exp.paid_amount || 0);
+    const remaining = amount - paid;
+    return isPastMonth && (exp.status !== 'paid' && remaining > 0);
   };
 
   // Helper to get total income for a specific month
@@ -452,7 +509,7 @@ export const Expenses: React.FC = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return { label: `Vencida (${Math.abs(diffDays)}d)`, color: 'text-rose-700 dark:text-rose-400 bg-rose-100/80 dark:bg-rose-500/20' };
+      return { label: `Atrasada (${Math.abs(diffDays)}d)`, color: 'text-rose-700 dark:text-rose-400 bg-rose-100/80 dark:bg-rose-500/20' };
     } else if (diffDays === 0) {
       return { label: 'Vence Hoje', color: 'text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-500/20' };
     } else if (diffDays <= 3) {
@@ -465,7 +522,15 @@ export const Expenses: React.FC = () => {
   // Filtered expenses
   const displayedExpenses = useMemo(() => {
     return expenses.filter(exp => {
-      const matchMonth = selectedMonth === 'all' || extractMonth(exp.due_date) === selectedMonth;
+      let matchMonth = false;
+      if (selectedMonth === 'all') {
+        matchMonth = true;
+      } else if (selectedMonth === currentMonthKey) {
+        // In current month, include both current month's expenses AND past unpaid overdue expenses
+        matchMonth = extractMonth(exp.due_date) === currentMonthKey || isOverdueFromPast(exp);
+      } else {
+        matchMonth = extractMonth(exp.due_date) === selectedMonth;
+      }
       if (!matchMonth) return false;
 
       const companyName = (exp.company || exp.description || '').toLowerCase();
@@ -485,8 +550,17 @@ export const Expenses: React.FC = () => {
       if (statusFilter === 'partial') return paid > 0 && balance > 0;
 
       return true;
+    }).sort((a, b) => {
+      // If viewing current month, prioritize overdue items from previous months at top
+      if (selectedMonth === currentMonthKey) {
+        const aOverdue = isOverdueFromPast(a);
+        const bOverdue = isOverdueFromPast(b);
+        if (aOverdue && !bOverdue) return -1;
+        if (!aOverdue && bOverdue) return 1;
+      }
+      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
     });
-  }, [expenses, selectedMonth, searchTerm, selectedCategory, statusFilter]);
+  }, [expenses, selectedMonth, searchTerm, selectedCategory, statusFilter, currentMonthKey]);
 
   // Grouped expenses by Month when "all" is selected
   const groupedExpenses = useMemo(() => {
@@ -512,10 +586,14 @@ export const Expenses: React.FC = () => {
 
   // Financial Statistics for the selected month (or total)
   const stats = useMemo(() => {
-    // Month expenses (before search/category filters to reflect total financial health for that period)
-    const monthExpenses = selectedMonth === 'all'
-      ? expenses
-      : expenses.filter(e => extractMonth(e.due_date) === selectedMonth);
+    let monthExpenses: ExpenseRecord[] = [];
+    if (selectedMonth === 'all') {
+      monthExpenses = expenses;
+    } else if (selectedMonth === currentMonthKey) {
+      monthExpenses = expenses.filter(e => extractMonth(e.due_date) === currentMonthKey || isOverdueFromPast(e));
+    } else {
+      monthExpenses = expenses.filter(e => extractMonth(e.due_date) === selectedMonth);
+    }
 
     // Month incomes
     const monthIncomes = selectedMonth === 'all'
@@ -526,6 +604,10 @@ export const Expenses: React.FC = () => {
     const totalPaid = monthExpenses.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0);
     const totalBalance = Math.max(0, totalExpenses - totalPaid);
     const pendingCount = monthExpenses.filter(e => (Number(e.amount || 0) - Number(e.paid_amount || 0)) > 0).length;
+
+    const overdueList = monthExpenses.filter(e => isOverdueFromPast(e));
+    const overdueCount = overdueList.length;
+    const overdueBalance = overdueList.reduce((acc, curr) => acc + Math.max(0, (Number(curr.amount) || 0) - (Number(curr.paid_amount) || 0)), 0);
 
     // Calculate late fees (when categorized as late_fee or default late with excess)
     const totalLateFees = monthExpenses.reduce((acc, exp) => {
@@ -549,12 +631,14 @@ export const Expenses: React.FC = () => {
       totalBalance,
       totalLateFees,
       pendingCount,
+      overdueCount,
+      overdueBalance,
       totalIncome,
       remainingAfterAllExpenses,
       currentAvailable,
       count: monthExpenses.length
     };
-  }, [expenses, incomes, selectedMonth]);
+  }, [expenses, incomes, selectedMonth, currentMonthKey]);
 
   const companySuggestions = useMemo(() => {
     const list = !company.trim() 
@@ -708,57 +792,97 @@ export const Expenses: React.FC = () => {
         {/* Dropdowns & Pills */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
           
-          {/* Month Selector Popover */}
-          <div className="relative" ref={monthDropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-              className="flex items-center justify-between gap-2 px-3.5 py-2 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-black/10 dark:hover:bg-white/10 transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Calendar size={15} className="text-zinc-400" />
-                <span>{formatMonthLabel(selectedMonth)}</span>
-              </div>
-              <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
+          {/* Month Paginator & Selector */}
+          <div className="flex items-center gap-1.5">
+            <div className="inline-flex items-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-0.5">
+              {/* Botão Mês Anterior */}
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                disabled={selectedMonth === 'all'}
+                className="p-1.5 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                title="Mês Anterior"
+              >
+                <ChevronLeft size={16} strokeWidth={2.5} />
+              </button>
 
-            {isMonthDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-64 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-72 overflow-y-auto">
+              {/* Dropdown Popover Trigger */}
+              <div className="relative" ref={monthDropdownRef}>
                 <button
-                  onClick={() => {
-                    setSelectedMonth('all');
-                    setIsMonthDropdownOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
-                    selectedMonth === 'all' 
-                      ? 'font-bold text-white bg-[#3584e4]' 
-                      : 'text-zinc-700 dark:text-zinc-300'
-                  }`}
+                  type="button"
+                  onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
+                  className="flex items-center gap-2 px-2.5 py-1 text-sm font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-all cursor-pointer"
                 >
-                  <span>Todos os Meses</span>
-                  {selectedMonth === 'all' && <Check size={16} className="text-white" />}
+                  <Calendar size={15} className="text-zinc-400 shrink-0" />
+                  <span className="truncate max-w-[140px] sm:max-w-none">{formatMonthLabel(selectedMonth)}</span>
+                  <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isMonthDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                
-                <div className="h-px bg-black/10 dark:bg-white/10 my-1" />
 
-                {availableMonths.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      setSelectedMonth(m);
-                      setIsMonthDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
-                      selectedMonth === m 
-                        ? 'font-bold text-white bg-[#3584e4]' 
-                        : 'text-zinc-700 dark:text-zinc-300'
-                    }`}
-                  >
-                    <span>{formatMonthLabel(m)}</span>
-                    {selectedMonth === m && <Check size={16} className="text-white" />}
-                  </button>
-                ))}
+                {isMonthDropdownOpen && (
+                  <div className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-64 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-72 overflow-y-auto">
+                    <button
+                      onClick={() => {
+                        setSelectedMonth('all');
+                        setIsMonthDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
+                        selectedMonth === 'all' 
+                          ? 'font-bold text-white bg-[#3584e4]' 
+                          : 'text-zinc-700 dark:text-zinc-300'
+                      }`}
+                    >
+                      <span>Todos os Meses</span>
+                      {selectedMonth === 'all' && <Check size={16} className="text-white" />}
+                    </button>
+                    
+                    <div className="h-px bg-black/10 dark:bg-white/10 my-1" />
+
+                    {availableMonths.map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setSelectedMonth(m);
+                          setIsMonthDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2 text-sm text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
+                          selectedMonth === m 
+                            ? 'font-bold text-white bg-[#3584e4]' 
+                            : 'text-zinc-700 dark:text-zinc-300'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          {m === currentMonthKey && <span className="w-1.5 h-1.5 rounded-full bg-[#3584e4]" />}
+                          {formatMonthLabel(m)}
+                        </span>
+                        {selectedMonth === m && <Check size={16} className="text-white" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Botão Próximo Mês */}
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                disabled={selectedMonth === 'all'}
+                className="p-1.5 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-md transition-all disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                title="Próximo Mês"
+              >
+                <ChevronRight size={16} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* Atalho Hoje */}
+            {selectedMonth !== currentMonthKey && (
+              <button
+                type="button"
+                onClick={() => setSelectedMonth(currentMonthKey)}
+                className="px-2.5 py-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 border border-black/10 dark:border-white/10 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                title="Ir para o mês atual"
+              >
+                Hoje
+              </button>
             )}
           </div>
 
@@ -872,105 +996,134 @@ export const Expenses: React.FC = () => {
             </button>
           </div>
         ) : (
-          groupedExpenses.map((group) => {
-            const groupTotal = group.items.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-            const groupPaid = group.items.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0);
-            const groupPending = Math.max(0, groupTotal - groupPaid);
-            const groupIncome = getMonthIncome(group.monthKey);
-            const groupRemaining = groupIncome - groupTotal;
-
-            return (
-              <div key={group.monthKey} className="space-y-3">
-                
-                {/* Month Group Header */}
-                <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <h2 className="text-sm md:text-base font-bold text-zinc-900 dark:text-white">
-                      {formatMonthLabel(group.monthKey)}
-                    </h2>
-                    <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                      ({group.items.length} {group.items.length === 1 ? 'conta' : 'contas'})
-                    </span>
+          <>
+            {/* Overdue alert banner when viewing current month */}
+            {selectedMonth === currentMonthKey && stats.overdueCount > 0 && (
+              <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm shadow-xs">
+                <div className="flex items-center gap-3 text-amber-900 dark:text-amber-100">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+                    <AlertTriangle size={18} strokeWidth={2.5} />
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {groupIncome > 0 && (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-xl flex items-center gap-1">
-                        <Wallet size={12} />
-                        <span>Receita: {formatCurrency(groupIncome)}</span>
-                      </span>
-                    )}
-                    <span className="text-zinc-600 dark:text-zinc-300 font-medium bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-xl">
-                      Despesas: <strong className="text-zinc-900 dark:text-white">{formatCurrency(groupTotal)}</strong>
-                    </span>
-                    {groupIncome > 0 && (
-                      <span className={`font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1 ${
-                        groupRemaining >= 0 
-                          ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10' 
-                          : 'text-rose-700 dark:text-rose-400 bg-rose-500/10'
-                      }`}>
-                        <span>Sobra: {groupRemaining >= 0 ? '+' : ''}{formatCurrency(groupRemaining)}</span>
-                      </span>
-                    )}
-                    {groupPending > 0 ? (
-                      <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-xl">
-                        Pendente: {formatCurrency(groupPending)}
-                      </span>
-                    ) : (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-xl">
-                        100% Quitado
-                      </span>
-                    )}
+                  <div>
+                    <div className="font-bold text-sm">
+                      {stats.overdueCount === 1 ? '1 conta atrasada de meses anteriores' : `${stats.overdueCount} contas atrasadas de meses anteriores`}
+                    </div>
+                    <div className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                      O saldo devedor acumulado de <strong className="font-bold text-amber-950 dark:text-white">{formatCurrency(stats.overdueBalance)}</strong> está somado automaticamente nas despesas deste mês corrente.
+                    </div>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Table Container */}
-                <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-zinc-200/70 dark:border-white/10 shadow-xs overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-zinc-200/70 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 bg-zinc-50/60 dark:bg-zinc-800/30">
-                          <th className="py-3 px-4 font-bold">Vencimento</th>
-                          <th className="py-3 px-4 font-bold">Empresa / Beneficiário</th>
-                          <th className="py-3 px-4 font-bold">Categoria</th>
-                          <th className="py-3 px-4 font-bold text-right">Valor</th>
-                          <th className="py-3 px-4 font-bold text-right">Pago</th>
-                          <th className="py-3 px-4 font-bold text-right">Saldo</th>
-                          <th className="py-3 px-4 font-bold text-center w-10"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-200/60 dark:divide-white/5 text-sm">
-                        {group.items.map((exp) => {
-                          const amount = Number(exp.amount || 0);
-                          const paid = Number(exp.paid_amount || 0);
-                          const balance = Math.max(0, amount - paid);
-                          const isPaid = balance <= 0 && amount > 0;
-                          const dueInfo = getDueDateStatus(exp.due_date, isPaid);
+            {groupedExpenses.map((group) => {
+              const groupTotal = group.items.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+              const groupPaid = group.items.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0);
+              const groupPending = Math.max(0, groupTotal - groupPaid);
+              const groupIncome = getMonthIncome(group.monthKey);
+              const groupRemaining = groupIncome - groupTotal;
 
-                          const due = exp.due_date ? exp.due_date.split('T')[0] : '';
-                          const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
-                          const isLate = pDate ? pDate > due : false;
-                          const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amount);
-                          const lateFee = isLateFee && paid > amount ? (paid - amount) : 0;
-                          const overpayment = !isLateFee && paid > amount ? (paid - amount) : 0;
+              return (
+                <div key={group.monthKey} className="space-y-3">
+                  
+                  {/* Month Group Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                      <h2 className="text-sm md:text-base font-bold text-zinc-900 dark:text-white">
+                        {formatMonthLabel(group.monthKey)}
+                      </h2>
+                      <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                        ({group.items.length} {group.items.length === 1 ? 'conta' : 'contas'})
+                      </span>
+                    </div>
 
-                          return (
-                            <tr
-                              key={exp.id}
-                              onClick={() => setSelectedExpense(exp)}
-                              className="hover:bg-zinc-100/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors group select-none"
-                            >
-                              {/* Vencimento / Pagamento */}
-                              <td className="py-3.5 px-4 whitespace-nowrap">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs md:text-sm">
-                                    {formatDateBR(exp.due_date)}
-                                  </span>
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dueInfo.color}`}>
-                                    {dueInfo.label}
-                                  </span>
-                                </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {groupIncome > 0 && (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                          <Wallet size={12} />
+                          <span>Receita: {formatCurrency(groupIncome)}</span>
+                        </span>
+                      )}
+                      <span className="text-zinc-600 dark:text-zinc-300 font-medium bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-xl">
+                        Despesas: <strong className="text-zinc-900 dark:text-white">{formatCurrency(groupTotal)}</strong>
+                      </span>
+                      {groupIncome > 0 && (
+                        <span className={`font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1 ${
+                          groupRemaining >= 0 
+                            ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10' 
+                            : 'text-rose-700 dark:text-rose-400 bg-rose-500/10'
+                        }`}>
+                          <span>Sobra: {groupRemaining >= 0 ? '+' : ''}{formatCurrency(groupRemaining)}</span>
+                        </span>
+                      )}
+                      {groupPending > 0 ? (
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold bg-amber-500/10 px-2.5 py-1 rounded-xl">
+                          Pendente: {formatCurrency(groupPending)}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-xl">
+                          100% Quitado
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Table Container */}
+                  <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-zinc-200/70 dark:border-white/10 shadow-xs overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-200/70 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 bg-zinc-50/60 dark:bg-zinc-800/30">
+                            <th className="py-3 px-4 font-bold">Vencimento</th>
+                            <th className="py-3 px-4 font-bold">Empresa / Beneficiário</th>
+                            <th className="py-3 px-4 font-bold">Categoria</th>
+                            <th className="py-3 px-4 font-bold text-right">Valor</th>
+                            <th className="py-3 px-4 font-bold text-right">Pago</th>
+                            <th className="py-3 px-4 font-bold text-right">Saldo</th>
+                            <th className="py-3 px-4 font-bold text-center w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-200/60 dark:divide-white/5 text-sm">
+                          {group.items.map((exp) => {
+                            const amount = Number(exp.amount || 0);
+                            const paid = Number(exp.paid_amount || 0);
+                            const balance = Math.max(0, amount - paid);
+                            const isPaid = balance <= 0 && amount > 0;
+                            const dueInfo = getDueDateStatus(exp.due_date, isPaid);
+
+                            const due = exp.due_date ? exp.due_date.split('T')[0] : '';
+                            const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
+                            const isLate = pDate ? pDate > due : false;
+                            const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amount);
+                            const lateFee = isLateFee && paid > amount ? (paid - amount) : 0;
+                            const overpayment = !isLateFee && paid > amount ? (paid - amount) : 0;
+
+                            return (
+                              <tr
+                                key={exp.id}
+                                onClick={() => setSelectedExpense(exp)}
+                                className={`hover:bg-zinc-100/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors group select-none ${
+                                  selectedMonth === currentMonthKey && isOverdueFromPast(exp) ? 'bg-rose-500/[0.03] dark:bg-rose-500/[0.05]' : ''
+                                }`}
+                              >
+                                {/* Vencimento / Pagamento */}
+                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs md:text-sm">
+                                      {formatDateBR(exp.due_date)}
+                                    </span>
+                                    {selectedMonth === currentMonthKey && isOverdueFromPast(exp) ? (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-rose-700 dark:text-rose-400 bg-rose-500/15 border border-rose-500/30 flex items-center gap-1">
+                                        <AlertTriangle size={10} strokeWidth={2.5} />
+                                        Atrasada ({formatMonthShort(exp.due_date)})
+                                      </span>
+                                    ) : (
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dueInfo.color}`}>
+                                        {dueInfo.label}
+                                      </span>
+                                    )}
+                                  </div>
                                 {paid > 0 && exp.paid_date && (
                                   <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex flex-wrap items-center gap-1.5">
                                     <span>Pago em {formatDateBR(exp.paid_date)}</span>
@@ -1109,7 +1262,8 @@ export const Expenses: React.FC = () => {
 
               </div>
             );
-          })
+          })}
+        </>
         )}
       </div>
 
