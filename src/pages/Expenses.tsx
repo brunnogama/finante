@@ -81,6 +81,7 @@ export const Expenses: React.FC = () => {
   const [company, setCompany] = useState('');
   const [amountToPayInput, setAmountToPayInput] = useState('');
   const [amountPaidInput, setAmountPaidInput] = useState('');
+  const [excessType, setExcessType] = useState<'late_fee' | 'overpayment'>('late_fee');
   const [saveCompanyToFavorites, setSaveCompanyToFavorites] = useState(true);
 
   // Close dropdowns on outside click
@@ -240,6 +241,7 @@ export const Expenses: React.FC = () => {
     setDueDate(new Date().toISOString().split('T')[0]);
     setPaidDate(new Date().toISOString().split('T')[0]);
     setNotes('');
+    setExcessType('late_fee');
     setExpenseType(types[0] || 'Moradia');
     setCompany('');
     setAmountToPayInput('');
@@ -259,6 +261,7 @@ export const Expenses: React.FC = () => {
     setDueDate(expense.due_date || new Date().toISOString().split('T')[0]);
     setPaidDate(expense.paid_date || (expense.paid_amount ? expense.due_date : new Date().toISOString().split('T')[0]));
     setNotes(expense.notes || '');
+    setExcessType(expense.excess_type || (expense.paid_date && expense.due_date && expense.paid_date > expense.due_date ? 'late_fee' : 'overpayment'));
     setExpenseType(expense.type || (types[0] || 'Moradia'));
     setCompany(expense.company || expense.description || '');
     setAmountToPayInput(formatCurrency(expense.amount || 0));
@@ -313,6 +316,7 @@ export const Expenses: React.FC = () => {
       due_date: dueDate,
       paid_date: currentAmountPaid > 0 ? (paidDate || dueDate) : undefined,
       notes: notes.trim(),
+      excess_type: currentAmountPaid > currentAmountToPay ? excessType : undefined,
       amount: currentAmountToPay,
       paid_amount: currentAmountPaid,
       status: currentAmountPaid >= currentAmountToPay ? 'paid' : 'pending'
@@ -446,14 +450,15 @@ export const Expenses: React.FC = () => {
     const totalBalance = Math.max(0, totalExpenses - totalPaid);
     const pendingCount = monthExpenses.filter(e => (Number(e.amount || 0) - Number(e.paid_amount || 0)) > 0).length;
 
-    // Calculate late fees (when paid after due date with higher amount)
+    // Calculate late fees (when categorized as late_fee or default late with excess)
     const totalLateFees = monthExpenses.reduce((acc, exp) => {
       const amt = Number(exp.amount || 0);
       const paid = Number(exp.paid_amount || 0);
       const due = exp.due_date ? exp.due_date.split('T')[0] : '';
       const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
       const isLate = pDate ? pDate > due : false;
-      const lateFee = isLate && paid > amt ? (paid - amt) : 0;
+      const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amt);
+      const lateFee = isLateFee && paid > amt ? (paid - amt) : 0;
       return acc + lateFee;
     }, 0);
 
@@ -885,7 +890,9 @@ export const Expenses: React.FC = () => {
                           const due = exp.due_date ? exp.due_date.split('T')[0] : '';
                           const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
                           const isLate = pDate ? pDate > due : false;
-                          const lateFee = isLate && paid > amount ? (paid - amount) : 0;
+                          const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amount);
+                          const lateFee = isLateFee && paid > amount ? (paid - amount) : 0;
+                          const overpayment = !isLateFee && paid > amount ? (paid - amount) : 0;
 
                           return (
                             <tr
@@ -909,6 +916,11 @@ export const Expenses: React.FC = () => {
                                     {lateFee > 0 && (
                                       <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
                                         +{formatCurrency(lateFee)} Juros
+                                      </span>
+                                    )}
+                                    {overpayment > 0 && (
+                                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 px-1.5 py-0.2 rounded-md">
+                                        +{formatCurrency(overpayment)} a maior
                                       </span>
                                     )}
                                   </div>
@@ -956,6 +968,11 @@ export const Expenses: React.FC = () => {
                                 {lateFee > 0 && (
                                   <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
                                     +{formatCurrency(lateFee)} juros
+                                  </div>
+                                )}
+                                {overpayment > 0 && (
+                                  <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                                    +{formatCurrency(overpayment)} a maior
                                   </div>
                                 )}
                               </td>
@@ -1129,7 +1146,9 @@ export const Expenses: React.FC = () => {
                   const due = selectedExpense.due_date ? selectedExpense.due_date.split('T')[0] : '';
                   const pDate = selectedExpense.paid_date ? selectedExpense.paid_date.split('T')[0] : '';
                   const isLate = pDate ? pDate > due : false;
-                  const lateFee = isLate && pd > amt ? pd - amt : 0;
+                  const isLateFee = (selectedExpense.excess_type === 'late_fee') || (!selectedExpense.excess_type && isLate && pd > amt);
+                  const lateFee = isLateFee && pd > amt ? pd - amt : 0;
+                  const overpayment = !isLateFee && pd > amt ? pd - amt : 0;
                   if (lateFee > 0) {
                     return (
                       <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800 text-rose-600 dark:text-rose-400">
@@ -1139,6 +1158,19 @@ export const Expenses: React.FC = () => {
                         </span>
                         <span className="font-bold">
                           + {formatCurrency(lateFee)}
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (overpayment > 0) {
+                    return (
+                      <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800 text-blue-600 dark:text-blue-400">
+                        <span className="flex items-center gap-1 font-semibold">
+                          <Wallet size={14} />
+                          Pagamento a Maior:
+                        </span>
+                        <span className="font-bold">
+                          + {formatCurrency(overpayment)}
                         </span>
                       </div>
                     );
@@ -1438,13 +1470,75 @@ export const Expenses: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Late Fee Callout Banner */}
-                  {paidDate && dueDate && paidDate > dueDate && currentAmountPaid > currentAmountToPay && (
-                    <div className="p-3.5 rounded-2xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-400">
-                      <Flame size={16} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
-                      <div>
-                        <span className="font-bold">Multa e Juros por Atraso: </span>
-                        <span>Pagamento realizado após o vencimento ({formatDateBR(paidDate)}) com valor superior. O acréscimo de <strong>{formatCurrency(currentAmountPaid - currentAmountToPay)}</strong> será contabilizado como despesa de Multa e Juros.</span>
+                  {/* Classificação da Diferença Paga a Mais */}
+                  {currentAmountPaid > currentAmountToPay && (
+                    <div className="p-3.5 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 space-y-2.5 animate-in fade-in duration-150">
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                          <AlertTriangle size={13} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-tight">
+                            Diferença paga a mais: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">+{formatCurrency(currentAmountPaid - currentAmountToPay)}</span>
+                          </h4>
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                            Como você deseja categorizar essa quantia excedente?
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                        {/* Opção: Multa e Juros */}
+                        <button
+                          type="button"
+                          onClick={() => setExcessType('late_fee')}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                            excessType === 'late_fee'
+                              ? 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500 text-rose-900 dark:text-rose-100 ring-1 ring-rose-500'
+                              : 'bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                              <Flame size={13} />
+                              <span>Multa e Juros</span>
+                            </div>
+                            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                              excessType === 'late_fee' ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-400'
+                            }`}>
+                              {excessType === 'late_fee' && <Check size={8} strokeWidth={3} />}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                            Soma automaticamente como despesa de Multa e Juros nos relatórios.
+                          </p>
+                        </button>
+
+                        {/* Opção: Pagamento a Maior */}
+                        <button
+                          type="button"
+                          onClick={() => setExcessType('overpayment')}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                            excessType === 'overpayment'
+                              ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500 text-blue-900 dark:text-blue-100 ring-1 ring-blue-500'
+                              : 'bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+                              <Wallet size={13} />
+                              <span>Pagamento a Maior</span>
+                            </div>
+                            <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                              excessType === 'overpayment' ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-400'
+                            }`}>
+                              {excessType === 'overpayment' && <Check size={8} strokeWidth={3} />}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                            Registra normalmente sem incidência de juros ou multas por atraso.
+                          </p>
+                        </button>
                       </div>
                     </div>
                   )}

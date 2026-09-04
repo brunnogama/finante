@@ -25,13 +25,14 @@ export const PaymentPunctualityChart: React.FC<PaymentPunctualityChartProps> = (
 
     if (paid > 0) {
       const isLate = paidDate ? paidDate > due : false;
-      const extraFee = isLate && paid > amount ? paid - amount : 0;
+      const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amount);
+      const extraFee = isLateFee && paid > amount ? (paid - amount) : 0;
       
       if (extraFee > 0) {
         lateFeesTotal += extraFee;
       }
 
-      if (isLate || extraFee > 0) {
+      if (isLate) {
         lateAmount += paid;
         lateCount++;
       } else {
