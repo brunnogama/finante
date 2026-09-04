@@ -26,7 +26,8 @@ import {
   Paperclip,
   Eye,
   Download,
-  UploadCloud
+  UploadCloud,
+  Repeat
 } from 'lucide-react';
 import { 
   getExpenses, 
@@ -92,6 +93,7 @@ export const Expenses: React.FC = () => {
   const [isPaymentSectionOpen, setIsPaymentSectionOpen] = useState(false);
   const [excessType, setExcessType] = useState<'late_fee' | 'overpayment'>('late_fee');
   const [saveCompanyToFavorites, setSaveCompanyToFavorites] = useState(true);
+  const [isRecurring, setIsRecurring] = useState(false);
 
   // Attachment states
   const [billAttachment, setBillAttachment] = useState<string | null>(null);
@@ -298,6 +300,30 @@ export const Expenses: React.FC = () => {
     return isPastMonth && (exp.status !== 'paid' && remaining > 0);
   };
 
+  // Helper to calculate the next N months due dates on the same day
+  const calculateNextDueDates = (baseDateStr: string, count: number = 6): string[] => {
+    const parts = baseDateStr.split('T')[0].split('-');
+    if (parts.length < 3) return [];
+    const baseYear = parseInt(parts[0], 10);
+    const baseMonth = parseInt(parts[1], 10) - 1; // 0-indexed
+    const baseDay = parseInt(parts[2], 10);
+
+    const dates: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      const targetMonthIndex = baseMonth + i;
+      const targetYear = baseYear + Math.floor(targetMonthIndex / 12);
+      const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+
+      const maxDaysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const finalDay = Math.min(baseDay, maxDaysInMonth);
+
+      const monthPadded = String(targetMonth + 1).padStart(2, '0');
+      const dayPadded = String(finalDay).padStart(2, '0');
+      dates.push(`${targetYear}-${monthPadded}-${dayPadded}`);
+    }
+    return dates;
+  };
+
   // Helper to get total income for a specific month
   const getMonthIncome = (monthKey: string) => {
     if (monthKey === 'all' || monthKey === 'Sem Data') return 0;
@@ -366,6 +392,7 @@ export const Expenses: React.FC = () => {
     setIsFormCategoryDropdownOpen(false);
     setIsCompanySuggestionsOpen(false);
     setSaveCompanyToFavorites(true);
+    setIsRecurring(false);
   };
 
   const handleOpenNewModal = () => {
@@ -393,6 +420,7 @@ export const Expenses: React.FC = () => {
     setIsFormCategoryDropdownOpen(false);
     setIsCompanySuggestionsOpen(false);
     setSaveCompanyToFavorites(false);
+    setIsRecurring(false);
     
     setSelectedExpense(null);
     setIsFormModalOpen(true);
@@ -457,11 +485,60 @@ export const Expenses: React.FC = () => {
       await updateExpense(editingId, payload);
     } else {
       await addExpense(payload);
+
+      // Replicar para os próximos 6 meses se marcado como despesa recorrente
+      if (isRecurring && currentAmountToPay > 0) {
+        const futureDates = calculateNextDueDates(dueDate, 6);
+        for (const futureDate of futureDates) {
+          await addExpense({
+            company: cleanCompany,
+            description: cleanCompany,
+            type: expenseType,
+            due_date: futureDate,
+            paid_date: undefined,
+            payment_method: undefined,
+            notes: notes.trim(),
+            amount: currentAmountToPay,
+            paid_amount: 0,
+            status: 'pending',
+            bill_attachment: billAttachment || undefined,
+            bill_name: billName || (billAttachment ? 'Boleto / Conta' : undefined)
+          });
+        }
+      }
     }
 
     setIsFormModalOpen(false);
     resetForm();
     await loadAllData();
+  };
+
+  const handleReplicate6Months = async (expense: ExpenseRecord) => {
+    if (!expense.due_date || !expense.amount) return;
+    const amountVal = Number(expense.amount || 0);
+    const companyTitle = expense.company || expense.description || 'Despesa';
+    const confirmMsg = `Deseja replicar automaticamente a despesa "${companyTitle}" para os próximos 6 meses no valor de ${formatCurrency(amountVal)} cada?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    const futureDates = calculateNextDueDates(expense.due_date, 6);
+    for (const futureDate of futureDates) {
+      await addExpense({
+        company: companyTitle,
+        description: companyTitle,
+        type: expense.type,
+        due_date: futureDate,
+        paid_date: undefined,
+        payment_method: undefined,
+        notes: expense.notes,
+        amount: amountVal,
+        paid_amount: 0,
+        status: 'pending',
+        bill_attachment: expense.bill_attachment,
+        bill_name: expense.bill_name
+      });
+    }
+    setSelectedExpense(null);
+    await loadExpensesOnly();
   };
 
   const handleDeleteExpense = async (id: number) => {
@@ -1523,15 +1600,26 @@ export const Expenses: React.FC = () => {
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-3">
-              <button 
-                type="button"
-                onClick={() => setDeleteConfirmId(selectedExpense.id!)}
-                className="adw-btn destructive-action text-xs font-semibold cursor-pointer"
-              >
-                <Trash2 size={15} />
-                <span>Excluir</span>
-              </button>
+            <div className="pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <button 
+                  type="button"
+                  onClick={() => setDeleteConfirmId(selectedExpense.id!)}
+                  className="adw-btn destructive-action text-xs font-semibold cursor-pointer"
+                >
+                  <Trash2 size={15} />
+                  <span>Excluir</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReplicate6Months(selectedExpense)}
+                  className="adw-btn text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-zinc-700 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10"
+                  title="Replicar esta despesa mensalmente para os próximos 6 meses"
+                >
+                  <Repeat size={14} className="text-[#3584e4]" />
+                  <span>Replicar (+6 meses)</span>
+                </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button 
@@ -1845,6 +1933,37 @@ export const Expenses: React.FC = () => {
                         Salvar "{company.trim()}" em Fornecedores favoritos
                       </span>
                     </label>
+                  )}
+
+                  {/* Opção: Despesa Recorrente (Replicar para 6 meses) */}
+                  {!editingId && (
+                    <div className="p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                          isRecurring ? 'bg-[#3584e4]/15 text-[#3584e4]' : 'bg-black/5 dark:bg-white/5 text-zinc-400'
+                        }`}>
+                          <Repeat size={16} strokeWidth={2.3} />
+                        </div>
+                        <div>
+                          <label htmlFor="recurring-toggle" className="text-xs font-bold text-zinc-900 dark:text-white block cursor-pointer">
+                            Despesa Recorrente (6 Meses)
+                          </label>
+                          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 block">
+                            Replicar mensalmente para os próximos 6 meses com o mesmo valor
+                          </span>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input 
+                          id="recurring-toggle"
+                          type="checkbox"
+                          checked={isRecurring}
+                          onChange={(e) => setIsRecurring(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-zinc-300 dark:bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3584e4]"></div>
+                      </label>
+                    </div>
                   )}
 
                   {/* If payment is NOT open, show the "+ Registrar Pagamento" banner */}
