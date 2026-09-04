@@ -5,8 +5,7 @@ import {
   Calendar, 
   Wallet, 
   Receipt, 
-  TrendingUp, 
-  SlidersHorizontal 
+  TrendingUp 
 } from 'lucide-react';
 import { checkAppUpdate } from '../services/updater';
 import { supabase } from '../services/supabase';
@@ -122,57 +121,40 @@ export const Navigation: React.FC = () => {
         )}
       </NavLink>
 
-      {/* Footer Section: Ajustes & Perfil */}
-      <div className="md:mt-auto flex flex-col w-full justify-center md:justify-start pt-2 gap-1">
-        <NavLink to="/settings" className={getNavItemClass}>
-          {({ isActive }) => (
-            <>
-              <div className={`w-5 h-5 flex items-center justify-center relative shrink-0 ${getIconClass({ isActive })}`}>
-                <SlidersHorizontal size={18} strokeWidth={1.8} />
-                {hasUpdate && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#3584e4] rounded-full ring-2 ring-[#ebebeb] dark:ring-[#262626] animate-pulse" />
-                )}
-              </div>
-              <div className="flex items-center justify-between flex-1 hidden md:flex min-w-0">
-                <span className="text-sm truncate">Ajustes</span>
-                {hasUpdate && (
-                  <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-full bg-[#3584e4] text-white">
-                    NOVO
-                  </span>
-                )}
-              </div>
-            </>
-          )}
-        </NavLink>
-
-        {/* User Mini Card (GNOME HIG Sidebar Profile Footer) */}
-        {user && (
-          <NavLink 
-            to="/settings"
-            className="hidden md:flex items-center gap-2.5 p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/5 mt-1 text-left group"
-            title="Ver Conta nas Configurações"
-          >
-            {userAvatar ? (
-              <img 
-                src={userAvatar} 
-                alt={userName || 'Perfil'} 
-                className="w-6 h-6 rounded-full object-cover shrink-0 ring-1 ring-white/20"
-              />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-200 shrink-0">
-                {userName?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-200 truncate">
-                {userName || 'Minha Conta'}
-              </div>
-              <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                {user?.email || 'Conectado'}
-              </div>
+      {/* Footer Section: Perfil & Ajustes */}
+      <div className="md:mt-auto flex flex-col w-full justify-center md:justify-start pt-2">
+        <NavLink 
+          to="/settings"
+          className={({ isActive }) => `flex items-center justify-center md:justify-start gap-2.5 p-2 rounded-xl transition-all duration-150 w-full group relative border border-transparent ${
+            isActive 
+              ? 'text-zinc-950 dark:text-white bg-black/10 dark:bg-white/10 font-semibold shadow-xs' 
+              : 'text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium'
+          }`}
+          title="Ajustes e Perfil"
+        >
+          {userAvatar ? (
+            <img 
+              src={userAvatar} 
+              alt={userName || 'Perfil'} 
+              className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-white/20"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-200 shrink-0">
+              {userName?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-          </NavLink>
-        )}
+          )}
+          <div className="min-w-0 flex-1 hidden md:block">
+            <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-200 truncate flex items-center justify-between">
+              <span className="truncate">{userName || 'Ajustes'}</span>
+              {hasUpdate && (
+                <span className="w-2 h-2 bg-[#3584e4] rounded-full ring-2 ring-[#ebebeb] dark:ring-[#262626] animate-pulse shrink-0" />
+              )}
+            </div>
+            <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+              {user?.email || 'Preferências'}
+            </div>
+          </div>
+        </NavLink>
       </div>
     </nav>
   );
