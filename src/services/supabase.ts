@@ -814,10 +814,13 @@ export const deleteInvestment = async (id: number) => {
 ========================================================= */
 
 export const signInWithGoogle = async () => {
+  const isDev = window.location.hostname === 'localhost' && window.location.port !== '';
+  const redirectUrl = isDev ? window.location.origin : 'http://tauri.localhost';
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin
+      redirectTo: redirectUrl
     }
   });
   if (error) throw error;
