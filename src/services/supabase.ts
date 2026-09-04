@@ -810,7 +810,7 @@ export const deleteInvestment = async (id: number) => {
 };
 
 /* =========================================================
-   AUTH SERVICES (Google OAuth & Session)
+   AUTH SERVICES (Google OAuth, Email & Session)
 ========================================================= */
 
 export const signInWithGoogle = async () => {
@@ -824,9 +824,32 @@ export const signInWithGoogle = async () => {
   return data;
 };
 
-export const signOutUser = async () => {
-  const { error } = await supabase.auth.signOut();
+export const signInWithEmail = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password
+  });
   if (error) throw error;
+  return data;
+};
+
+export const signUpWithEmail = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password
+  });
+  if (error) throw error;
+  return data;
+};
+
+export const signOutUser = async () => {
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn('Sign out error:', err);
+  }
+  localStorage.removeItem('finante_pin');
+  localStorage.removeItem('finante_offline_mode');
 };
 
 export const getCurrentSession = async () => {
