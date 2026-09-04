@@ -12,6 +12,8 @@ export interface ExpenseRecord {
   amount: number;
   paid_amount?: number;
   due_date: string;
+  paid_date?: string;
+  notes?: string;
   type: string;
   status: 'pending' | 'paid';
   created_at?: string;
@@ -48,6 +50,8 @@ export const getExpenses = async (): Promise<ExpenseRecord[]> => {
       amount: Number(item.amount || 0),
       type: item.type || 'Outros',
       due_date: item.due_date || new Date().toISOString().split('T')[0],
+      paid_date: item.paid_date || (Number(item.paid_amount || 0) > 0 ? (item.due_date || new Date().toISOString().split('T')[0]) : undefined),
+      notes: item.notes || '',
       status: (item.paid_amount !== undefined && item.paid_amount !== null 
         ? Number(item.paid_amount) >= Number(item.amount) 
         : item.status === 'paid') ? 'paid' : 'pending'
@@ -74,6 +78,8 @@ export const addExpense = async (expense: ExpenseRecord) => {
     amount: amount,
     paid_amount: paid_amount,
     due_date: expense.due_date,
+    paid_date: expense.paid_date || (paid_amount > 0 ? expense.due_date : null),
+    notes: expense.notes?.trim() || '',
     type: expense.type,
     status: status
   };
@@ -226,6 +232,9 @@ export const updateExpense = async (id: number, expense: Partial<ExpenseRecord>)
   }
   if (expense.paid_amount !== undefined && expense.amount !== undefined) {
     updatePayload.status = Number(expense.paid_amount) >= Number(expense.amount) ? 'paid' : 'pending';
+    if (Number(expense.paid_amount) > 0 && !updatePayload.paid_date) {
+      updatePayload.paid_date = new Date().toISOString().split('T')[0];
+    }
   }
 
   try {

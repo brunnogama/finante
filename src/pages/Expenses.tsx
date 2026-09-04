@@ -17,7 +17,10 @@ import {
   BookmarkPlus,
   Wallet,
   Receipt,
-  PiggyBank
+  PiggyBank,
+  AlertTriangle,
+  FileText,
+  Flame
 } from 'lucide-react';
 import { 
   getExpenses, 
@@ -72,6 +75,8 @@ export const Expenses: React.FC = () => {
   // Form Field States
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paidDate, setPaidDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
   const [expenseType, setExpenseType] = useState('Moradia');
   const [company, setCompany] = useState('');
   const [amountToPayInput, setAmountToPayInput] = useState('');
@@ -233,6 +238,8 @@ export const Expenses: React.FC = () => {
   const resetForm = () => {
     setEditingId(null);
     setDueDate(new Date().toISOString().split('T')[0]);
+    setPaidDate(new Date().toISOString().split('T')[0]);
+    setNotes('');
     setExpenseType(types[0] || 'Moradia');
     setCompany('');
     setAmountToPayInput('');
@@ -250,6 +257,8 @@ export const Expenses: React.FC = () => {
   const handleOpenEditModal = (expense: ExpenseRecord) => {
     setEditingId(expense.id || null);
     setDueDate(expense.due_date || new Date().toISOString().split('T')[0]);
+    setPaidDate(expense.paid_date || (expense.paid_amount ? expense.due_date : new Date().toISOString().split('T')[0]));
+    setNotes(expense.notes || '');
     setExpenseType(expense.type || (types[0] || 'Moradia'));
     setCompany(expense.company || expense.description || '');
     setAmountToPayInput(formatCurrency(expense.amount || 0));
@@ -302,6 +311,8 @@ export const Expenses: React.FC = () => {
       description: cleanCompany,
       type: expenseType,
       due_date: dueDate,
+      paid_date: currentAmountPaid > 0 ? (paidDate || dueDate) : undefined,
+      notes: notes.trim(),
       amount: currentAmountToPay,
       paid_amount: currentAmountPaid,
       status: currentAmountPaid >= currentAmountToPay ? 'paid' : 'pending'
@@ -435,6 +446,17 @@ export const Expenses: React.FC = () => {
     const totalBalance = Math.max(0, totalExpenses - totalPaid);
     const pendingCount = monthExpenses.filter(e => (Number(e.amount || 0) - Number(e.paid_amount || 0)) > 0).length;
 
+    // Calculate late fees (when paid after due date with higher amount)
+    const totalLateFees = monthExpenses.reduce((acc, exp) => {
+      const amt = Number(exp.amount || 0);
+      const paid = Number(exp.paid_amount || 0);
+      const due = exp.due_date ? exp.due_date.split('T')[0] : '';
+      const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
+      const isLate = pDate ? pDate > due : false;
+      const lateFee = isLate && paid > amt ? (paid - amt) : 0;
+      return acc + lateFee;
+    }, 0);
+
     const totalIncome = monthIncomes.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
     const remainingAfterAllExpenses = totalIncome - totalExpenses; // Sobra após quitar todas as contas
     const currentAvailable = totalIncome - totalPaid; // Saldo atual após o que já foi pago
@@ -443,6 +465,7 @@ export const Expenses: React.FC = () => {
       totalExpenses,
       totalPaid,
       totalBalance,
+      totalLateFees,
       pendingCount,
       totalIncome,
       remainingAfterAllExpenses,
@@ -859,13 +882,18 @@ export const Expenses: React.FC = () => {
                           const isPaid = balance <= 0 && amount > 0;
                           const dueInfo = getDueDateStatus(exp.due_date, isPaid);
 
+                          const due = exp.due_date ? exp.due_date.split('T')[0] : '';
+                          const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
+                          const isLate = pDate ? pDate > due : false;
+                          const lateFee = isLate && paid > amount ? (paid - amount) : 0;
+
                           return (
                             <tr
                               key={exp.id}
                               onClick={() => setSelectedExpense(exp)}
                               className="hover:bg-zinc-100/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors group select-none"
                             >
-                              {/* Vencimento */}
+                              {/* Vencimento / Pagamento */}
                               <td className="py-3.5 px-4 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs md:text-sm">
@@ -875,6 +903,16 @@ export const Expenses: React.FC = () => {
                                     {dueInfo.label}
                                   </span>
                                 </div>
+                                {paid > 0 && exp.paid_date && (
+                                  <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1.5">
+                                    <span>Pago em {formatDateBR(exp.paid_date)}</span>
+                                    {lateFee > 0 && (
+                                      <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
+                                        +{formatCurrency(lateFee)} Juros
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </td>
 
                               {/* Empresa */}
@@ -885,6 +923,12 @@ export const Expenses: React.FC = () => {
                                     {exp.company || exp.description || 'Despesa'}
                                   </span>
                                 </div>
+                                {exp.notes && (
+                                  <div className="text-[11px] font-normal text-zinc-400 dark:text-zinc-500 mt-0.5 truncate max-w-[220px] flex items-center gap-1">
+                                    <FileText size={11} className="text-zinc-400 shrink-0" />
+                                    <span className="truncate">{exp.notes}</span>
+                                  </div>
+                                )}
                               </td>
 
                               {/* Categoria */}
@@ -909,6 +953,11 @@ export const Expenses: React.FC = () => {
                                 }`}>
                                   {formatCurrency(paid)}
                                 </span>
+                                {lateFee > 0 && (
+                                  <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                                    +{formatCurrency(lateFee)} juros
+                                  </div>
+                                )}
                               </td>
 
                               {/* Saldo */}
@@ -1054,12 +1103,56 @@ export const Expenses: React.FC = () => {
                     {formatDateBR(selectedExpense.due_date)}
                   </span>
                 </div>
+                {selectedExpense.paid_date && Number(selectedExpense.paid_amount || 0) > 0 && (
+                  <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
+                    <span className="text-zinc-400">Data de Pagamento:</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 size={14} />
+                      {formatDateBR(selectedExpense.paid_date)}
+                      {selectedExpense.paid_date > selectedExpense.due_date && (
+                        <span className="text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">
+                          Após Vencimento
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
                   <span className="text-zinc-400">Categoria:</span>
                   <span className="font-semibold text-zinc-900 dark:text-white">
                     {selectedExpense.type}
                   </span>
                 </div>
+                {(() => {
+                  const amt = Number(selectedExpense.amount || 0);
+                  const pd = Number(selectedExpense.paid_amount || 0);
+                  const due = selectedExpense.due_date ? selectedExpense.due_date.split('T')[0] : '';
+                  const pDate = selectedExpense.paid_date ? selectedExpense.paid_date.split('T')[0] : '';
+                  const isLate = pDate ? pDate > due : false;
+                  const lateFee = isLate && pd > amt ? pd - amt : 0;
+                  if (lateFee > 0) {
+                    return (
+                      <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800 text-rose-600 dark:text-rose-400">
+                        <span className="flex items-center gap-1 font-semibold">
+                          <Flame size={14} />
+                          Multa e Juros por Atraso:
+                        </span>
+                        <span className="font-bold">
+                          + {formatCurrency(lateFee)}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {selectedExpense.notes && (
+                  <div className="py-2">
+                    <span className="text-zinc-400 block mb-1">Observações:</span>
+                    <p className="bg-zinc-50 dark:bg-zinc-800/60 rounded-xl p-2.5 text-zinc-800 dark:text-zinc-200 text-xs font-normal whitespace-pre-wrap border border-zinc-200/50 dark:border-zinc-700/50">
+                      {selectedExpense.notes}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Quick Pay Action */}
@@ -1312,6 +1405,64 @@ export const Expenses: React.FC = () => {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Data de Pagamento (quando houver pagamento) */}
+              {currentAmountPaid > 0 && (
+                <div className="animate-in fade-in duration-150 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                        Data de Pagamento *
+                      </label>
+                      <DatePicker 
+                        value={paidDate} 
+                        onChange={(d) => setPaidDate(d)} 
+                        required 
+                      />
+                    </div>
+                    <div className="flex flex-col justify-end">
+                      <div className="text-xs pb-2.5">
+                        {paidDate && dueDate && paidDate > dueDate ? (
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
+                            <AlertTriangle size={14} className="shrink-0" />
+                            Pago após a data de vencimento
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                            <CheckCircle2 size={14} className="shrink-0" />
+                            Pago em dia
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Late Fee Callout Banner */}
+                  {paidDate && dueDate && paidDate > dueDate && currentAmountPaid > currentAmountToPay && (
+                    <div className="p-3.5 rounded-2xl bg-rose-500/10 dark:bg-rose-500/15 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-400">
+                      <Flame size={16} className="shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                      <div>
+                        <span className="font-bold">Multa e Juros por Atraso: </span>
+                        <span>Pagamento realizado após o vencimento ({formatDateBR(paidDate)}) com valor superior. O acréscimo de <strong>{formatCurrency(currentAmountPaid - currentAmountToPay)}</strong> será contabilizado como despesa de Multa e Juros.</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Observações Field */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                  Observações (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Informações adicionais, código de barras, parcelamento, etc..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 resize-none font-medium"
+                />
               </div>
 
               {/* Live Saldo Feedback */}

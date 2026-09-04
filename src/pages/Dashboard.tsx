@@ -27,6 +27,8 @@ import {
 } from '../services/supabase';
 import { ExpensesPieChart } from '../components/widgets/ExpensesPieChart';
 import { IncomeExpenseBarChart } from '../components/widgets/IncomeExpenseBarChart';
+import { PaymentPunctualityChart } from '../components/widgets/PaymentPunctualityChart';
+import { CheckCircle2 } from 'lucide-react';
 
 const extractMonth = (dateStr?: string): string => {
   if (!dateStr) return '';
@@ -327,6 +329,22 @@ export const Dashboard: React.FC = () => {
           </div>
           <div className="w-full h-64 sm:h-72 relative">
             <ExpensesPieChart expenses={filteredExpenses} />
+          </div>
+        </div>
+
+        {/* Gráfico 3: Pontualidade de Pagamentos & Multas */}
+        <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-3xl p-5 md:p-6 border border-zinc-200/70 dark:border-white/10 shadow-xl flex flex-col justify-start xl:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+              <CheckCircle2 size={18} className="text-emerald-500" />
+              Pontualidade de Pagamentos & Juros
+            </h3>
+            <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 px-2.5 py-1 rounded-lg">
+              {selectedPeriod}
+            </span>
+          </div>
+          <div className="w-full">
+            <PaymentPunctualityChart expenses={filteredExpenses} />
           </div>
         </div>
 
