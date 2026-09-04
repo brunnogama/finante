@@ -13,7 +13,9 @@ import {
   BarChart3, 
   PieChart as PieChartIcon, 
   Layers,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { 
@@ -28,7 +30,6 @@ import {
 import { ExpensesPieChart } from '../components/widgets/ExpensesPieChart';
 import { IncomeExpenseBarChart } from '../components/widgets/IncomeExpenseBarChart';
 import { PaymentPunctualityChart } from '../components/widgets/PaymentPunctualityChart';
-import { CheckCircle2 } from 'lucide-react';
 
 const extractMonth = (dateStr?: string): string => {
   if (!dateStr) return '';
@@ -130,6 +131,29 @@ export const Dashboard: React.FC = () => {
     return investments.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
   }, [investments]);
 
+  const overdueExpenses = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return expenses.filter(exp => {
+      const amount = Number(exp.amount || 0);
+      const paid = Number(exp.paid_amount || 0);
+      const remaining = amount - paid;
+      if (remaining <= 0 || exp.status === 'paid') return false;
+      if (!exp.due_date) return false;
+      const due = new Date(exp.due_date.split('T')[0] + 'T00:00:00');
+      return due.getTime() < today.getTime();
+    });
+  }, [expenses]);
+
+  const overdueCount = overdueExpenses.length;
+  const overdueTotal = useMemo(() => {
+    return overdueExpenses.reduce((acc, curr) => {
+      const amt = Number(curr.amount || 0);
+      const paid = Number(curr.paid_amount || 0);
+      return acc + Math.max(0, amt - paid);
+    }, 0);
+  }, [overdueExpenses]);
+
   const balance = totalIncome - totalExpense;
 
   const formatBRL = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -148,7 +172,7 @@ export const Dashboard: React.FC = () => {
             Visão Geral
           </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Resumo consolidado de receitas, despesas, saldo e investimentos
+            Resumo consolidado de receitas, despesas, contas atrasadas e investimentos
           </p>
         </div>
 
@@ -200,8 +224,8 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
       
-      {/* Summary KPI Cards - 1 -> 2 -> 4 Columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {/* Summary KPI Cards - 1 -> 2 -> 3 -> 5 Columns */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         
         {/* Card 1: Saldo Líquido */}
         <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0 transition-all duration-150">
@@ -268,7 +292,42 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Investimentos */}
+        {/* Card 4: Despesas Atrasadas */}
+        <Link 
+          to="/expenses" 
+          className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0 transition-all duration-150 hover:bg-black/5 dark:hover:bg-white/10 group block cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
+                Despesas Atrasadas
+              </span>
+              <ArrowRight size={12} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            </div>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${
+              overdueCount > 0
+                ? 'bg-[#e01b24]/10 dark:bg-[#e01b24]/20 text-[#e01b24]'
+                : 'bg-[#2ec27e]/10 dark:bg-[#2ec27e]/20 text-[#2ec27e]'
+            }`}>
+              {overdueCount > 0 ? <AlertTriangle size={15} strokeWidth={2.5} /> : <CheckCircle2 size={15} strokeWidth={2.5} />}
+            </div>
+          </div>
+          <div 
+            className={`text-xl sm:text-2xl font-bold tracking-tight truncate min-w-0 ${
+              overdueCount > 0 ? 'text-[#e01b24]' : 'text-[#2ec27e]'
+            }`}
+            title={formatBRL(overdueTotal)}
+          >
+            {loading ? '...' : formatBRL(overdueTotal)}
+          </div>
+          <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+            {overdueCount === 0 
+              ? 'Nenhuma conta em atraso' 
+              : `${overdueCount} ${overdueCount === 1 ? 'conta vencida pendente' : 'contas vencidas pendentes'}`}
+          </div>
+        </Link>
+
+        {/* Card 5: Investimentos */}
         <Link 
           to="/investments" 
           className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0 transition-all duration-150 hover:bg-black/5 dark:hover:bg-white/10 group block cursor-pointer"
@@ -278,7 +337,7 @@ export const Dashboard: React.FC = () => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
                 Investimentos
               </span>
-              <ArrowRight size={12} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ArrowRight size={12} className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
             </div>
             <div className="w-7 h-7 rounded-lg bg-[#9141ac]/10 dark:bg-[#9141ac]/20 text-[#9141ac] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Layers size={15} strokeWidth={2.5} />

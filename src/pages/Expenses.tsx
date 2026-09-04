@@ -712,11 +712,11 @@ export const Expenses: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Sobra Estimada (Receitas - Despesas) */}
+        {/* Card 3: Saldo Previsto (Receitas - Despesas) */}
         <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0">
             <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
-              Sobra Prevista
+              Saldo Previsto
             </span>
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
               stats.remainingAfterAllExpenses >= 0
@@ -1054,7 +1054,7 @@ export const Expenses: React.FC = () => {
                             ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10' 
                             : 'text-rose-700 dark:text-rose-400 bg-rose-500/10'
                         }`}>
-                          <span>Sobra: {groupRemaining >= 0 ? '+' : ''}{formatCurrency(groupRemaining)}</span>
+                          <span>Saldo Previsto: {groupRemaining >= 0 ? '+' : ''}{formatCurrency(groupRemaining)}</span>
                         </span>
                       )}
                       {groupPending > 0 ? (
@@ -1153,50 +1153,6 @@ export const Expenses: React.FC = () => {
                                   <span className="truncate max-w-[180px] sm:max-w-none text-xs md:text-sm">
                                     {exp.company || exp.description || 'Despesa'}
                                   </span>
-                                </div>
-                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                  {exp.notes && (
-                                    <div className="text-[11px] font-normal text-zinc-400 dark:text-zinc-500 truncate max-w-[180px] flex items-center gap-1">
-                                      <FileText size={11} className="text-zinc-400 shrink-0" />
-                                      <span className="truncate">{exp.notes}</span>
-                                    </div>
-                                  )}
-                                  {exp.bill_attachment && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewDoc({
-                                          url: exp.bill_attachment!,
-                                          name: exp.bill_name || 'Boleto/Conta',
-                                          title: 'Boleto / Documento da Conta'
-                                        });
-                                      }}
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
-                                      title="Clique para visualizar o Boleto / Conta"
-                                    >
-                                      <Paperclip size={11} />
-                                      <span>Boleto</span>
-                                    </button>
-                                  )}
-                                  {exp.receipt_attachment && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewDoc({
-                                          url: exp.receipt_attachment!,
-                                          name: exp.receipt_name || 'Comprovante',
-                                          title: 'Comprovante de Pagamento'
-                                        });
-                                      }}
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
-                                      title="Clique para visualizar o Comprovante de Pagamento"
-                                    >
-                                      <Receipt size={11} />
-                                      <span>Recibo</span>
-                                    </button>
-                                  )}
                                 </div>
                               </td>
 
