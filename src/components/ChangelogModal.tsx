@@ -17,6 +17,12 @@ interface ChangelogEntry {
 
 const BUILTIN_CHANGELOG: ChangelogEntry[] = [
   {
+    sha: '9f1a23c',
+    date: '2026-09-04T16:15:00Z',
+    title: '✨ Redesign Completo da Página Início & Responsividade',
+    description: 'Padronização da Visão Geral com o tema Apple HIG, cards KPI adaptativos com truncamento inteligente, atalhos rápidos e gráficos fluidos.'
+  },
+  {
     sha: 'ca9076c',
     date: '2026-09-04T15:10:00Z',
     title: '🔒 PIN Obrigatório & Inicialização em Tela Cheia',
