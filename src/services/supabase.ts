@@ -7,8 +7,10 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface ExpenseRecord {
   id?: number;
-  description: string;
+  description?: string;
+  company?: string;
   amount: number;
+  paid_amount?: number;
   due_date: string;
   type: string;
   status: 'pending' | 'paid';
@@ -23,65 +25,650 @@ export interface IncomeRecord {
   created_at?: string;
 }
 
-export const getExpenses = async () => {
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('*')
-    .order('due_date', { ascending: true });
-    
-  if (error) {
-    console.error('Error fetching expenses:', error);
-    return [];
+export const getExpenses = async (): Promise<ExpenseRecord[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*')
+      .order('due_date', { ascending: true });
+      
+    if (error) {
+      console.warn('Supabase getExpenses warning:', error.message);
+      const local = localStorage.getItem('finante_local_expenses');
+      return local ? JSON.parse(local) : [];
+    }
+
+    const normalized = (data || []).map((item: any) => ({
+      ...item,
+      company: item.company || item.description || 'Despesa',
+      description: item.description || item.company || 'Despesa',
+      paid_amount: item.paid_amount !== undefined && item.paid_amount !== null 
+        ? Number(item.paid_amount) 
+        : (item.status === 'paid' ? Number(item.amount) : 0),
+      amount: Number(item.amount || 0),
+      type: item.type || 'Outros',
+      due_date: item.due_date || new Date().toISOString().split('T')[0],
+      status: (item.paid_amount !== undefined && item.paid_amount !== null 
+        ? Number(item.paid_amount) >= Number(item.amount) 
+        : item.status === 'paid') ? 'paid' : 'pending'
+    }));
+
+    localStorage.setItem('finante_local_expenses', JSON.stringify(normalized));
+    return normalized;
+  } catch (err) {
+    console.error('Error in getExpenses:', err);
+    const local = localStorage.getItem('finante_local_expenses');
+    return local ? JSON.parse(local) : [];
   }
-  return data || [];
 };
 
 export const addExpense = async (expense: ExpenseRecord) => {
-  const { data, error } = await supabase
-    .from('expenses')
-    .insert([expense])
-    .select();
-  if (error) console.error('Error adding expense:', error);
-  return data;
+  const company = expense.company?.trim() || expense.description?.trim() || 'Despesa';
+  const amount = Number(expense.amount) || 0;
+  const paid_amount = Number(expense.paid_amount) || 0;
+  const status = paid_amount >= amount && amount > 0 ? 'paid' : 'pending';
+
+  const fullPayload = {
+    description: company,
+    company: company,
+    amount: amount,
+    paid_amount: paid_amount,
+    due_date: expense.due_date,
+    type: expense.type,
+    status: status
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .insert([fullPayload])
+      .select();
+
+    if (error) {
+      console.warn('Retrying insert without newer columns:', error.message);
+      const standardPayload = {
+        description: company,
+        amount: amount,
+        due_date: expense.due_date,
+        type: expense.type,
+        status: status
+      };
+      const { data: stdData, error: stdError } = await supabase
+        .from('expenses')
+        .insert([standardPayload])
+        .select();
+
+      if (stdError) {
+        console.warn('Fallback to local storage due to Supabase error:', stdError.message);
+        const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+        const newRecord = { ...fullPayload, id: Date.now() };
+        localStorage.setItem('finante_local_expenses', JSON.stringify([...local, newRecord]));
+        return [newRecord];
+      }
+
+      if (stdData && stdData[0]) {
+        return [{ ...stdData[0], company, paid_amount }];
+      }
+    }
+    return data;
+  } catch (err) {
+    console.error('Error adding expense:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+    const newRecord = { ...fullPayload, id: Date.now() };
+    localStorage.setItem('finante_local_expenses', JSON.stringify([...local, newRecord]));
+    return [newRecord];
+  }
 };
 
-export const getIncomes = async () => {
-  const { data, error } = await supabase
-    .from('incomes')
-    .select('*')
-    .order('created_at', { ascending: false });
+export const getIncomes = async (): Promise<IncomeRecord[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('incomes')
+      .select('*')
+      .order('date', { ascending: false });
+      
+    if (error) {
+      console.warn('Supabase getIncomes warning:', error.message);
+      const local = localStorage.getItem('finante_local_incomes');
+      return local ? JSON.parse(local) : [];
+    }
     
-  if (error) {
-    console.error('Error fetching incomes:', error);
+    if (data) {
+      localStorage.setItem('finante_local_incomes', JSON.stringify(data));
+      return data;
+    }
     return [];
+  } catch (err) {
+    console.error('Error fetching incomes:', err);
+    const local = localStorage.getItem('finante_local_incomes');
+    return local ? JSON.parse(local) : [];
   }
-  return data || [];
 };
 
 export const addIncome = async (income: IncomeRecord) => {
-  const { data, error } = await supabase
-    .from('incomes')
-    .insert([income])
-    .select();
-  if (error) console.error('Error adding income:', error);
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('incomes')
+      .insert([income])
+      .select();
+      
+    if (error) {
+      console.warn('Fallback to local storage for income:', error.message);
+      const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
+      const newRecord = { ...income, id: Date.now() };
+      localStorage.setItem('finante_local_incomes', JSON.stringify([newRecord, ...local]));
+      return [newRecord];
+    }
+    return data;
+  } catch (err) {
+    console.error('Error adding income:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
+    const newRecord = { ...income, id: Date.now() };
+    localStorage.setItem('finante_local_incomes', JSON.stringify([newRecord, ...local]));
+    return [newRecord];
+  }
 };
 
+export const updateIncome = async (id: number, income: Partial<IncomeRecord>) => {
+  try {
+    const { data, error } = await supabase
+      .from('incomes')
+      .update(income)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.warn('Updating local storage fallback for income:', error.message);
+      const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
+      const updated = local.map((item: any) => item.id === id ? { ...item, ...income } : item);
+      localStorage.setItem('finante_local_incomes', JSON.stringify(updated));
+      return updated.filter((item: any) => item.id === id);
+    }
+    return data;
+  } catch (err) {
+    console.error('Error updating income:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
+    const updated = local.map((item: any) => item.id === id ? { ...item, ...income } : item);
+    localStorage.setItem('finante_local_incomes', JSON.stringify(updated));
+    return updated.filter((item: any) => item.id === id);
+  }
+};
+
+export const deleteIncome = async (id: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('incomes')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      console.warn('Error deleting income from supabase, removing from local storage:', error);
+    }
+    const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
+    const filtered = local.filter((item: any) => item.id !== id);
+    localStorage.setItem('finante_local_incomes', JSON.stringify(filtered));
+    return data;
+  } catch (err) {
+    console.error('Error deleting income:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
+    const filtered = local.filter((item: any) => item.id !== id);
+    localStorage.setItem('finante_local_incomes', JSON.stringify(filtered));
+    return null;
+  }
+};
+
+
 export const updateExpense = async (id: number, expense: Partial<ExpenseRecord>) => {
-  const { data, error } = await supabase
-    .from('expenses')
-    .update(expense)
-    .eq('id', id)
-    .select();
-  if (error) console.error('Error updating expense:', error);
-  return data;
+  const company = expense.company || expense.description;
+  const updatePayload: any = { ...expense };
+  if (company) {
+    updatePayload.description = company;
+    updatePayload.company = company;
+  }
+  if (expense.paid_amount !== undefined && expense.amount !== undefined) {
+    updatePayload.status = Number(expense.paid_amount) >= Number(expense.amount) ? 'paid' : 'pending';
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .update(updatePayload)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.warn('Retrying update with standard columns:', error.message);
+      const standardPayload: any = {};
+      if (company) standardPayload.description = company;
+      if (expense.amount !== undefined) standardPayload.amount = expense.amount;
+      if (expense.due_date !== undefined) standardPayload.due_date = expense.due_date;
+      if (expense.type !== undefined) standardPayload.type = expense.type;
+      if (updatePayload.status !== undefined) standardPayload.status = updatePayload.status;
+
+      const { data: stdData, error: stdError } = await supabase
+        .from('expenses')
+        .update(standardPayload)
+        .eq('id', id)
+        .select();
+
+      if (stdError) {
+        console.warn('Updating local storage fallback:', stdError.message);
+        const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+        const updated = local.map((item: any) => item.id === id ? { ...item, ...updatePayload } : item);
+        localStorage.setItem('finante_local_expenses', JSON.stringify(updated));
+        return updated.filter((item: any) => item.id === id);
+      }
+      return stdData;
+    }
+    return data;
+  } catch (err) {
+    console.error('Error updating expense:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+    const updated = local.map((item: any) => item.id === id ? { ...item, ...updatePayload } : item);
+    localStorage.setItem('finante_local_expenses', JSON.stringify(updated));
+    return updated.filter((item: any) => item.id === id);
+  }
 };
 
 export const deleteExpense = async (id: number) => {
-  const { data, error } = await supabase
-    .from('expenses')
-    .delete()
-    .eq('id', id);
-  if (error) console.error('Error deleting expense:', error);
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      console.warn('Error deleting expense from supabase, removing from local storage:', error);
+    }
+    const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+    const filtered = local.filter((item: any) => item.id !== id);
+    localStorage.setItem('finante_local_expenses', JSON.stringify(filtered));
+    return data;
+  } catch (err) {
+    console.error('Error deleting expense:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+    const filtered = local.filter((item: any) => item.id !== id);
+    localStorage.setItem('finante_local_expenses', JSON.stringify(filtered));
+    return null;
+  }
 };
+
+// ==========================================
+// EXPENSE TYPES / CATEGORIES MANAGEMENT
+// ==========================================
+export const DEFAULT_EXPENSE_TYPES = [
+  'Moradia',
+  'Alimentação',
+  'Transporte',
+  'Serviços',
+  'Saúde',
+  'Educação',
+  'Assinaturas',
+  'Lazer',
+  'Outros'
+];
+
+export const getExpenseTypes = async (): Promise<string[]> => {
+  // Always try to fetch freshest list from Supabase first
+  try {
+    const { data, error } = await supabase
+      .from('expense_types')
+      .select('name')
+      .order('name', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      const names = data.map((d: any) => d.name);
+      localStorage.setItem('finante_expense_types', JSON.stringify(names));
+      return names;
+    }
+  } catch (err) {
+    console.warn('Supabase expense_types fetch error:', err);
+  }
+
+  // Fallback to local cache if offline or table not present
+  const local = localStorage.getItem('finante_expense_types');
+  if (local) {
+    try {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {
+      console.error('Error parsing local expense types:', e);
+    }
+  }
+
+  localStorage.setItem('finante_expense_types', JSON.stringify(DEFAULT_EXPENSE_TYPES));
+  return DEFAULT_EXPENSE_TYPES;
+};
+
+export const addExpenseType = async (typeName: string): Promise<string[]> => {
+  const cleanName = typeName.trim();
+  if (!cleanName) return await getExpenseTypes();
+
+  const currentTypes = await getExpenseTypes();
+  if (currentTypes.some(t => t.toLowerCase() === cleanName.toLowerCase())) {
+    return currentTypes; // already exists
+  }
+
+  const updated = [...currentTypes, cleanName];
+  localStorage.setItem('finante_expense_types', JSON.stringify(updated));
+
+  try {
+    await supabase.from('expense_types').insert([{ name: cleanName }]);
+  } catch (err) {
+    console.warn('Supabase insert expense_type fallback:', err);
+  }
+
+  return updated;
+};
+
+export const updateExpenseType = async (oldName: string, newName: string): Promise<string[]> => {
+  const cleanNew = newName.trim();
+  if (!cleanNew || oldName === cleanNew) return await getExpenseTypes();
+
+  const currentTypes = await getExpenseTypes();
+  const updated = currentTypes.map(t => t === oldName ? cleanNew : t);
+  localStorage.setItem('finante_expense_types', JSON.stringify(updated));
+
+  // Update associated expenses locally
+  const localExp = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+  const updatedExp = localExp.map((exp: any) => exp.type === oldName ? { ...exp, type: cleanNew } : exp);
+  localStorage.setItem('finante_local_expenses', JSON.stringify(updatedExp));
+
+  // Update associated companies locally
+  const localComp = JSON.parse(localStorage.getItem('finante_companies') || '[]');
+  const updatedComp = localComp.map((comp: any) => comp.default_type === oldName ? { ...comp, default_type: cleanNew } : comp);
+  localStorage.setItem('finante_companies', JSON.stringify(updatedComp));
+
+  try {
+    await Promise.allSettled([
+      supabase.from('expense_types').update({ name: cleanNew }).eq('name', oldName),
+      supabase.from('expenses').update({ type: cleanNew }).eq('type', oldName),
+      supabase.from('companies').update({ default_type: cleanNew }).eq('default_type', oldName)
+    ]);
+  } catch (err) {
+    console.warn('Supabase update expense_type fallback:', err);
+  }
+
+  return updated;
+};
+
+export const deleteExpenseType = async (nameToDelete: string): Promise<string[]> => {
+  const currentTypes = await getExpenseTypes();
+  const updated = currentTypes.filter(t => t !== nameToDelete);
+  const finalTypes = updated.length > 0 ? updated : ['Outros'];
+  localStorage.setItem('finante_expense_types', JSON.stringify(finalTypes));
+
+  // Migrate any expenses using this deleted type to 'Outros' or first available
+  const fallbackType = finalTypes[0] || 'Outros';
+  const localExp = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+  const updatedExp = localExp.map((exp: any) => exp.type === nameToDelete ? { ...exp, type: fallbackType } : exp);
+  localStorage.setItem('finante_local_expenses', JSON.stringify(updatedExp));
+
+  const localComp = JSON.parse(localStorage.getItem('finante_companies') || '[]');
+  const updatedComp = localComp.map((comp: any) => comp.default_type === nameToDelete ? { ...comp, default_type: fallbackType } : comp);
+  localStorage.setItem('finante_companies', JSON.stringify(updatedComp));
+
+  try {
+    await Promise.allSettled([
+      supabase.from('expense_types').delete().eq('name', nameToDelete),
+      supabase.from('expenses').update({ type: fallbackType }).eq('type', nameToDelete),
+      supabase.from('companies').update({ default_type: fallbackType }).eq('default_type', nameToDelete)
+    ]);
+  } catch (err) {
+    console.warn('Supabase delete expense_type fallback:', err);
+  }
+
+  return finalTypes;
+};
+
+// ==========================================
+// COMPANIES / VENDORS MANAGEMENT
+// ==========================================
+export interface CompanyRecord {
+  id?: number;
+  name: string;
+  default_type: string;
+  created_at?: string;
+}
+
+export const DEFAULT_COMPANIES: CompanyRecord[] = [
+  { id: 1, name: 'Netflix', default_type: 'Assinaturas' },
+  { id: 2, name: 'Spotify', default_type: 'Assinaturas' },
+  { id: 3, name: 'Copel', default_type: 'Serviços' },
+  { id: 4, name: 'Enel', default_type: 'Serviços' },
+  { id: 5, name: 'Nubank', default_type: 'Serviços' },
+  { id: 6, name: 'Supermercado', default_type: 'Alimentação' },
+  { id: 7, name: 'Aluguel', default_type: 'Moradia' },
+  { id: 8, name: 'Condomínio', default_type: 'Moradia' },
+  { id: 9, name: 'Farmácia', default_type: 'Saúde' },
+  { id: 10, name: 'Posto de Gasolina', default_type: 'Transporte' }
+];
+
+export const getCompanies = async (): Promise<CompanyRecord[]> => {
+  // Always try to fetch freshest list from Supabase first
+  try {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      localStorage.setItem('finante_companies', JSON.stringify(data));
+      return data;
+    }
+  } catch (err) {
+    console.warn('Supabase companies fetch error:', err);
+  }
+
+  // Fallback to local cache if offline or table not present
+  const local = localStorage.getItem('finante_companies');
+  if (local) {
+    try {
+      const parsed = JSON.parse(local);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {
+      console.error('Error parsing local companies:', e);
+    }
+  }
+
+  localStorage.setItem('finante_companies', JSON.stringify(DEFAULT_COMPANIES));
+  return DEFAULT_COMPANIES;
+};
+
+export const addCompany = async (company: { name: string; default_type: string }): Promise<CompanyRecord[]> => {
+  const cleanName = company.name.trim();
+  if (!cleanName) return await getCompanies();
+
+  const current = await getCompanies();
+  const exists = current.find(c => c.name.toLowerCase() === cleanName.toLowerCase());
+  if (exists) {
+    return await updateCompany(exists.id!, { default_type: company.default_type });
+  }
+
+  const newCompany: CompanyRecord = {
+    name: cleanName,
+    default_type: company.default_type || 'Outros'
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('companies')
+      .insert([{ name: newCompany.name, default_type: newCompany.default_type }])
+      .select();
+
+    if (!error && data && data[0]) {
+      const updated = [...current.filter(c => c.name.toLowerCase() !== cleanName.toLowerCase()), data[0]]
+        .sort((a, b) => a.name.localeCompare(b.name));
+      localStorage.setItem('finante_companies', JSON.stringify(updated));
+      return updated;
+    }
+  } catch (err) {
+    console.warn('Supabase addCompany error, using fallback:', err);
+  }
+
+  const fallbackRecord: CompanyRecord = {
+    ...newCompany,
+    id: Date.now(),
+    created_at: new Date().toISOString()
+  };
+  const updated = [...current, fallbackRecord].sort((a, b) => a.name.localeCompare(b.name));
+  localStorage.setItem('finante_companies', JSON.stringify(updated));
+  return updated;
+};
+
+export const updateCompany = async (id: number, updates: Partial<CompanyRecord>): Promise<CompanyRecord[]> => {
+  const current = await getCompanies();
+  const updated = current.map(c => c.id === id ? { ...c, ...updates, name: updates.name ? updates.name.trim() : c.name } : c)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  localStorage.setItem('finante_companies', JSON.stringify(updated));
+
+  try {
+    await supabase.from('companies').update(updates).eq('id', id);
+  } catch (err) {
+    console.warn('Supabase updateCompany fallback:', err);
+  }
+
+  return updated;
+};
+
+export const deleteCompany = async (id: number): Promise<CompanyRecord[]> => {
+  const current = await getCompanies();
+  const updated = current.filter(c => c.id !== id);
+  localStorage.setItem('finante_companies', JSON.stringify(updated));
+
+  try {
+    await supabase.from('companies').delete().eq('id', id);
+  } catch (err) {
+    console.warn('Supabase deleteCompany fallback:', err);
+  }
+
+  return updated;
+};
+
+export interface InvestmentRecord {
+  id?: number;
+  asset: string;
+  category: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  created_at?: string;
+}
+
+export const getInvestments = async (): Promise<InvestmentRecord[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('investments')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.warn('Supabase getInvestments warning:', error.message);
+      const local = localStorage.getItem('finante_local_investments');
+      return local ? JSON.parse(local) : [];
+    }
+
+    const normalized = (data || []).map((item: any) => ({
+      ...item,
+      amount: Number(item.amount || 0),
+      asset: item.asset || 'Ativo',
+      category: item.category || 'Renda Fixa',
+      date: item.date || new Date().toISOString().split('T')[0]
+    }));
+
+    localStorage.setItem('finante_local_investments', JSON.stringify(normalized));
+    return normalized;
+  } catch (err) {
+    console.error('Error in getInvestments:', err);
+    const local = localStorage.getItem('finante_local_investments');
+    return local ? JSON.parse(local) : [];
+  }
+};
+
+export const addInvestment = async (investment: Omit<InvestmentRecord, 'id' | 'created_at'>) => {
+  try {
+    const payload = {
+      ...investment,
+      amount: Number(investment.amount || 0),
+      asset: investment.asset.trim(),
+      category: investment.category || 'Renda Fixa',
+      date: investment.date || new Date().toISOString().split('T')[0]
+    };
+
+    const { data, error } = await supabase
+      .from('investments')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.warn('Inserting fallback into local storage for investments:', error.message);
+      const newRecord = {
+        ...payload,
+        id: Date.now(),
+        created_at: new Date().toISOString()
+      };
+      const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
+      localStorage.setItem('finante_local_investments', JSON.stringify([newRecord, ...local]));
+      return [newRecord];
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Error adding investment:', err);
+    const newRecord = {
+      ...investment,
+      amount: Number(investment.amount || 0),
+      id: Date.now(),
+      created_at: new Date().toISOString()
+    };
+    const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
+    localStorage.setItem('finante_local_investments', JSON.stringify([newRecord, ...local]));
+    return [newRecord];
+  }
+};
+
+export const updateInvestment = async (id: number, investment: Partial<InvestmentRecord>) => {
+  try {
+    const { data, error } = await supabase
+      .from('investments')
+      .update(investment)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.warn('Updating local storage fallback for investment:', error.message);
+      const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
+      const updated = local.map((item: any) => item.id === id ? { ...item, ...investment } : item);
+      localStorage.setItem('finante_local_investments', JSON.stringify(updated));
+      return updated.filter((item: any) => item.id === id);
+    }
+    return data;
+  } catch (err) {
+    console.error('Error updating investment:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
+    const updated = local.map((item: any) => item.id === id ? { ...item, ...investment } : item);
+    localStorage.setItem('finante_local_investments', JSON.stringify(updated));
+    return updated.filter((item: any) => item.id === id);
+  }
+};
+
+export const deleteInvestment = async (id: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('investments')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      console.warn('Error deleting investment from supabase:', error);
+    }
+    const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
+    const filtered = local.filter((item: any) => item.id !== id);
+    localStorage.setItem('finante_local_investments', JSON.stringify(filtered));
+    return data;
+  } catch (err) {
+    console.error('Error deleting investment:', err);
+    const local = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
+    const filtered = local.filter((item: any) => item.id !== id);
+    localStorage.setItem('finante_local_investments', JSON.stringify(filtered));
+    return null;
+  }
+};
+

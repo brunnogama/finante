@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HeaderBar } from './components/HeaderBar';
 import { Navigation } from './components/Navigation';
 import { Dashboard } from './pages/Dashboard';
