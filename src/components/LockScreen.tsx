@@ -432,14 +432,11 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                 <img 
                   src={userAvatar} 
                   alt={userName || 'Perfil'} 
-                  className="w-20 h-20 rounded-3xl object-cover border-2 border-white/20 shadow-2xl ring-4 ring-[#3584e4]/20"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-white/20 shadow-2xl ring-4 ring-[#3584e4]/20"
                 />
-                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-xl bg-[#2a2a2a] border border-white/20 flex items-center justify-center text-[#2ec27e] shadow-md">
-                  <Lock size={13} />
-                </div>
               </div>
             ) : (
-              <div className="w-20 h-20 rounded-3xl bg-[#2a2a2a] border border-white/10 shadow-2xl flex items-center justify-center text-[#3584e4]">
+              <div className="w-20 h-20 rounded-full bg-[#2a2a2a] border border-white/10 shadow-2xl flex items-center justify-center text-[#3584e4]">
                 {step === 'success' ? (
                   <CheckCircle2 size={40} className="text-[#2ec27e] animate-scaleIn" />
                 ) : step === 'create' || step === 'confirm' ? (
