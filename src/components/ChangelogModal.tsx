@@ -19,6 +19,12 @@ interface ChangelogEntry {
 
 const BUILTIN_CHANGELOG: ChangelogEntry[] = [
   {
+    sha: '4d8e92a',
+    date: '2026-09-04T18:20:00Z',
+    title: '📅 Novo Seletor de Data Apple HIG & Ordem Alfabética',
+    description: 'Seletor de data moderno com fechamento automático ao clicar na data, glassmorphism e menus suspensos 100% em ordem alfabética.'
+  },
+  {
     sha: '9ab217f',
     date: '2026-09-04T17:00:00Z',
     title: '🚀 Atualização Automática no Aplicativo (Auto-Updater)',

@@ -38,14 +38,15 @@ import {
   supabase, 
   type InvestmentRecord 
 } from '../services/supabase';
+import { DatePicker } from '../components/DatePicker';
 
 const INVESTMENT_CATEGORIES = [
-  'Renda Fixa',
   'Ações',
-  'Fundos Imobiliários',
   'Criptomoedas',
+  'Fundos Imobiliários',
   'Internacional',
-  'Outros'
+  'Outros',
+  'Renda Fixa'
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -785,11 +786,9 @@ export const Investments: React.FC = () => {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
                     Data do Aporte
                   </label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs sm:text-sm font-semibold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(d) => setDate(d)}
                     required
                   />
                 </div>

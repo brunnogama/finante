@@ -169,14 +169,18 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
   };
 
   // Filtered lists
-  const filteredCompanies = companies.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || 
-    c.default_type.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredCompanies = companies
+    .filter(c => 
+      c.name.toLowerCase().includes(search.toLowerCase()) || 
+      c.default_type.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-  const filteredTypes = types.filter(t => 
-    t.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredTypes = types
+    .filter(t => 
+      t.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease]">
@@ -294,7 +298,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
 
                   {isCompanyTypeDropdownOpen && (
                     <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                      {types.map(t => (
+                      {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(t => (
                         <button
                           key={t}
                           type="button"

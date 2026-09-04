@@ -22,17 +22,18 @@ import {
   supabase, 
   type IncomeRecord 
 } from '../services/supabase';
+import { DatePicker } from '../components/DatePicker';
 
 const QUICK_INCOME_SOURCES = [
-  'Salário',
   'Adiantamento',
-  'Freelance',
-  'Dividendos',
-  'Rendimentos',
   'Aluguel Recebido',
-  'Venda',
   'Bônus / PLR',
-  'Outros'
+  'Dividendos',
+  'Freelance',
+  'Outros',
+  'Rendimentos',
+  'Salário',
+  'Venda'
 ];
 
 export const Income: React.FC = () => {
@@ -568,12 +569,10 @@ export const Income: React.FC = () => {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
                   Data de Recebimento *
                 </label>
-                <input
-                  type="date"
-                  required
+                <DatePicker
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                  onChange={(d) => setDate(d)}
+                  required
                 />
               </div>
 

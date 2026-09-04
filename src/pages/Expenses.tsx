@@ -35,6 +35,7 @@ import {
 } from '../services/supabase';
 import { ManageCategoriesModal } from '../components/ManageCategoriesModal';
 import { CategoryIcon } from '../components/CategoryIcon';
+import { DatePicker } from '../components/DatePicker';
 
 export const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
@@ -451,8 +452,10 @@ export const Expenses: React.FC = () => {
   }, [expenses, incomes, selectedMonth]);
 
   const companySuggestions = useMemo(() => {
-    if (!company.trim()) return companies;
-    return companies.filter(c => c.name.toLowerCase().includes(company.toLowerCase()));
+    const list = !company.trim() 
+      ? companies 
+      : companies.filter(c => c.name.toLowerCase().includes(company.toLowerCase()));
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [companies, company]);
 
   return (
@@ -684,7 +687,7 @@ export const Expenses: React.FC = () => {
                   {selectedCategory === 'Todas' && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
                 </button>
                 <div className="my-1 border-t border-zinc-100 dark:border-zinc-800" />
-                {types.map(cat => (
+                {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
                   <button
                     key={cat}
                     type="button"
@@ -1226,7 +1229,7 @@ export const Expenses: React.FC = () => {
 
                   {isFormCategoryDropdownOpen && (
                     <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                      {types.map(cat => (
+                      {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
                         <button
                           key={cat}
                           type="button"
@@ -1252,15 +1255,11 @@ export const Expenses: React.FC = () => {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
                     Data de Vencimento *
                   </label>
-                  <div className="relative">
-                    <input 
-                      type="date"
-                      required
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                    />
-                  </div>
+                  <DatePicker 
+                    value={dueDate} 
+                    onChange={(d) => setDueDate(d)} 
+                    required 
+                  />
                 </div>
               </div>
 

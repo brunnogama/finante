@@ -295,15 +295,15 @@ export const deleteExpense = async (id: number) => {
 // EXPENSE TYPES / CATEGORIES MANAGEMENT
 // ==========================================
 export const DEFAULT_EXPENSE_TYPES = [
-  'Moradia',
   'Alimentação',
-  'Transporte',
-  'Serviços',
-  'Saúde',
-  'Educação',
   'Assinaturas',
+  'Educação',
   'Lazer',
-  'Outros'
+  'Moradia',
+  'Outros',
+  'Saúde',
+  'Serviços',
+  'Transporte'
 ];
 
 export const getExpenseTypes = async (): Promise<string[]> => {
@@ -315,7 +315,7 @@ export const getExpenseTypes = async (): Promise<string[]> => {
       .order('name', { ascending: true });
 
     if (!error && data && data.length > 0) {
-      const names = data.map((d: any) => d.name);
+      const names = data.map((d: any) => d.name).sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'));
       localStorage.setItem('finante_expense_types', JSON.stringify(names));
       return names;
     }
@@ -328,14 +328,17 @@ export const getExpenseTypes = async (): Promise<string[]> => {
   if (local) {
     try {
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.sort((a: string, b: string) => a.localeCompare(b, 'pt-BR'));
+      }
     } catch (e) {
       console.error('Error parsing local expense types:', e);
     }
   }
 
-  localStorage.setItem('finante_expense_types', JSON.stringify(DEFAULT_EXPENSE_TYPES));
-  return DEFAULT_EXPENSE_TYPES;
+  const sorted = [...DEFAULT_EXPENSE_TYPES].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  localStorage.setItem('finante_expense_types', JSON.stringify(sorted));
+  return sorted;
 };
 
 export const addExpenseType = async (typeName: string): Promise<string[]> => {
@@ -430,16 +433,16 @@ export interface CompanyRecord {
 }
 
 export const DEFAULT_COMPANIES: CompanyRecord[] = [
-  { id: 1, name: 'Netflix', default_type: 'Assinaturas' },
-  { id: 2, name: 'Spotify', default_type: 'Assinaturas' },
-  { id: 3, name: 'Copel', default_type: 'Serviços' },
-  { id: 4, name: 'Enel', default_type: 'Serviços' },
-  { id: 5, name: 'Nubank', default_type: 'Serviços' },
-  { id: 6, name: 'Supermercado', default_type: 'Alimentação' },
   { id: 7, name: 'Aluguel', default_type: 'Moradia' },
   { id: 8, name: 'Condomínio', default_type: 'Moradia' },
+  { id: 3, name: 'Copel', default_type: 'Serviços' },
+  { id: 4, name: 'Enel', default_type: 'Serviços' },
   { id: 9, name: 'Farmácia', default_type: 'Saúde' },
-  { id: 10, name: 'Posto de Gasolina', default_type: 'Transporte' }
+  { id: 1, name: 'Netflix', default_type: 'Assinaturas' },
+  { id: 5, name: 'Nubank', default_type: 'Serviços' },
+  { id: 10, name: 'Posto de Gasolina', default_type: 'Transporte' },
+  { id: 2, name: 'Spotify', default_type: 'Assinaturas' },
+  { id: 6, name: 'Supermercado', default_type: 'Alimentação' }
 ];
 
 export const getCompanies = async (): Promise<CompanyRecord[]> => {
@@ -451,8 +454,9 @@ export const getCompanies = async (): Promise<CompanyRecord[]> => {
       .order('name', { ascending: true });
 
     if (!error && data && data.length > 0) {
-      localStorage.setItem('finante_companies', JSON.stringify(data));
-      return data;
+      const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+      localStorage.setItem('finante_companies', JSON.stringify(sorted));
+      return sorted;
     }
   } catch (err) {
     console.warn('Supabase companies fetch error:', err);
@@ -463,14 +467,17 @@ export const getCompanies = async (): Promise<CompanyRecord[]> => {
   if (local) {
     try {
       const parsed = JSON.parse(local);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.sort((a: any, b: any) => a.name.localeCompare(b.name, 'pt-BR'));
+      }
     } catch (e) {
       console.error('Error parsing local companies:', e);
     }
   }
 
-  localStorage.setItem('finante_companies', JSON.stringify(DEFAULT_COMPANIES));
-  return DEFAULT_COMPANIES;
+  const defaultSorted = [...DEFAULT_COMPANIES].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  localStorage.setItem('finante_companies', JSON.stringify(defaultSorted));
+  return defaultSorted;
 };
 
 export const addCompany = async (company: { name: string; default_type: string }): Promise<CompanyRecord[]> => {
