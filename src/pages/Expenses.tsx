@@ -388,9 +388,9 @@ export const Expenses: React.FC = () => {
       notes: notes.trim(),
       excess_type: actualPaidAmount > currentAmountToPay ? excessType : undefined,
       bill_attachment: billAttachment || undefined,
-      bill_name: billName || undefined,
-      receipt_attachment: actualPaidAmount > 0 ? (receiptAttachment || undefined) : undefined,
-      receipt_name: actualPaidAmount > 0 ? (receiptName || undefined) : undefined,
+      bill_name: billName || (billAttachment ? 'Boleto / Conta' : undefined),
+      receipt_attachment: receiptAttachment || undefined,
+      receipt_name: receiptName || (receiptAttachment ? 'Comprovante' : undefined),
       amount: currentAmountToPay,
       paid_amount: actualPaidAmount,
       status: actualPaidAmount >= currentAmountToPay && currentAmountToPay > 0 ? 'paid' : 'pending'
@@ -693,7 +693,7 @@ export const Expenses: React.FC = () => {
             placeholder="Buscar por empresa ou tipo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg pl-8.5 pr-7 py-1.5 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/30 transition-all"
+            className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg pl-9 pr-7 py-2 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/30 transition-all"
           />
           {searchTerm && (
             <button
@@ -1000,21 +1000,51 @@ export const Expenses: React.FC = () => {
                                   <span className="truncate max-w-[180px] sm:max-w-none text-xs md:text-sm">
                                     {exp.company || exp.description || 'Despesa'}
                                   </span>
-                                  {(exp.bill_attachment || exp.receipt_attachment) && (
-                                    <span 
-                                      className="inline-flex items-center text-zinc-400 hover:text-indigo-500 transition-colors shrink-0"
-                                      title={exp.bill_attachment && exp.receipt_attachment ? "Boleto e comprovante anexados" : exp.bill_attachment ? "Boleto anexado" : "Comprovante anexado"}
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                  {exp.notes && (
+                                    <div className="text-[11px] font-normal text-zinc-400 dark:text-zinc-500 truncate max-w-[180px] flex items-center gap-1">
+                                      <FileText size={11} className="text-zinc-400 shrink-0" />
+                                      <span className="truncate">{exp.notes}</span>
+                                    </div>
+                                  )}
+                                  {exp.bill_attachment && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPreviewDoc({
+                                          url: exp.bill_attachment!,
+                                          name: exp.bill_name || 'Boleto/Conta',
+                                          title: 'Boleto / Documento da Conta'
+                                        });
+                                      }}
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
+                                      title="Clique para visualizar o Boleto / Conta"
                                     >
-                                      <Paperclip size={12} />
-                                    </span>
+                                      <Paperclip size={11} />
+                                      <span>Boleto</span>
+                                    </button>
+                                  )}
+                                  {exp.receipt_attachment && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPreviewDoc({
+                                          url: exp.receipt_attachment!,
+                                          name: exp.receipt_name || 'Comprovante',
+                                          title: 'Comprovante de Pagamento'
+                                        });
+                                      }}
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-1.5 py-0.5 rounded-md transition-colors cursor-pointer"
+                                      title="Clique para visualizar o Comprovante de Pagamento"
+                                    >
+                                      <Receipt size={11} />
+                                      <span>Recibo</span>
+                                    </button>
                                   )}
                                 </div>
-                                {exp.notes && (
-                                  <div className="text-[11px] font-normal text-zinc-400 dark:text-zinc-500 mt-0.5 truncate max-w-[220px] flex items-center gap-1">
-                                    <FileText size={11} className="text-zinc-400 shrink-0" />
-                                    <span className="truncate">{exp.notes}</span>
-                                  </div>
-                                )}
                               </td>
 
                               {/* Categoria */}
@@ -1274,60 +1304,94 @@ export const Expenses: React.FC = () => {
 
                 {/* Document & Receipt Attachments in Detail Modal */}
                 {(selectedExpense.bill_attachment || selectedExpense.receipt_attachment) && (
-                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-                      Documentos Anexados
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="pt-3 border-t border-black/5 dark:border-white/5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                        <Paperclip size={14} className="text-[#3584e4]" />
+                        Documentos e Comprovantes
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {selectedExpense.bill_attachment && (
-                        <div className="p-2.5 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 truncate">
-                            <FileText size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
-                            <div className="truncate">
-                              <div className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                        <div className="p-3 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 truncate min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                              <FileText size={16} />
+                            </div>
+                            <div className="truncate min-w-0">
+                              <div className="text-xs font-bold text-zinc-900 dark:text-white truncate" title={selectedExpense.bill_name || 'Boleto / Conta'}>
                                 {selectedExpense.bill_name || 'Boleto / Conta'}
                               </div>
-                              <div className="text-[10px] text-zinc-500 dark:text-zinc-400">Documento da Conta</div>
+                              <div className="text-[10px] text-zinc-500 dark:text-zinc-400">Boleto / Documento</div>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setPreviewDoc({
-                              url: selectedExpense.bill_attachment!,
-                              name: selectedExpense.bill_name || 'Boleto/Conta',
-                              title: 'Boleto / Documento da Conta'
-                            })}
-                            className="p-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 transition-colors shrink-0 cursor-pointer"
-                            title="Visualizar"
-                          >
-                            <Eye size={14} />
-                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDoc({
+                                url: selectedExpense.bill_attachment!,
+                                name: selectedExpense.bill_name || 'Boleto/Conta',
+                                title: 'Boleto / Documento da Conta'
+                              })}
+                              className="adw-btn text-xs font-semibold py-1.5 px-2.5 text-indigo-700 dark:text-indigo-300 bg-indigo-500/20 hover:bg-indigo-500/30 cursor-pointer"
+                              title="Visualizar documento"
+                            >
+                              <Eye size={14} />
+                              <span>Ver</span>
+                            </button>
+                            <a
+                              href={selectedExpense.bill_attachment}
+                              download={selectedExpense.bill_name || 'boleto_conta'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="adw-btn text-xs font-semibold p-1.5 text-indigo-700 dark:text-indigo-300 bg-indigo-500/20 hover:bg-indigo-500/30 cursor-pointer"
+                              title="Baixar arquivo"
+                            >
+                              <Download size={14} />
+                            </a>
+                          </div>
                         </div>
                       )}
 
                       {selectedExpense.receipt_attachment && (
-                        <div className="p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 truncate">
-                            <Receipt size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                            <div className="truncate">
-                              <div className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                        <div className="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 truncate min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                              <Receipt size={16} />
+                            </div>
+                            <div className="truncate min-w-0">
+                              <div className="text-xs font-bold text-zinc-900 dark:text-white truncate" title={selectedExpense.receipt_name || 'Comprovante'}>
                                 {selectedExpense.receipt_name || 'Comprovante'}
                               </div>
                               <div className="text-[10px] text-zinc-500 dark:text-zinc-400">Recibo de Pagamento</div>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setPreviewDoc({
-                              url: selectedExpense.receipt_attachment!,
-                              name: selectedExpense.receipt_name || 'Comprovante',
-                              title: 'Comprovante de Pagamento'
-                            })}
-                            className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 transition-colors shrink-0 cursor-pointer"
-                            title="Visualizar"
-                          >
-                            <Eye size={14} />
-                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDoc({
+                                url: selectedExpense.receipt_attachment!,
+                                name: selectedExpense.receipt_name || 'Comprovante',
+                                title: 'Comprovante de Pagamento'
+                              })}
+                              className="adw-btn text-xs font-semibold py-1.5 px-2.5 text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 hover:bg-emerald-500/30 cursor-pointer"
+                              title="Visualizar comprovante"
+                            >
+                              <Eye size={14} />
+                              <span>Ver</span>
+                            </button>
+                            <a
+                              href={selectedExpense.receipt_attachment}
+                              download={selectedExpense.receipt_name || 'comprovante'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="adw-btn text-xs font-semibold p-1.5 text-emerald-700 dark:text-emerald-300 bg-emerald-500/20 hover:bg-emerald-500/30 cursor-pointer"
+                              title="Baixar arquivo"
+                            >
+                              <Download size={14} />
+                            </a>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1340,7 +1404,7 @@ export const Expenses: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleQuickPayFull(selectedExpense)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold text-xs flex items-center justify-center gap-2 border border-emerald-500/20 transition-all cursor-pointer"
+                  className="adw-btn suggested-action w-full py-2.5 px-4 text-xs font-bold cursor-pointer"
                 >
                   <CheckCircle2 size={16} />
                   <span>Quitar Valor Restante ({formatCurrency(Math.max(0, Number(selectedExpense.amount || 0) - Number(selectedExpense.paid_amount || 0)))})</span>
@@ -1349,11 +1413,11 @@ export const Expenses: React.FC = () => {
             </div>
 
             {/* Bottom Actions */}
-            <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+            <div className="pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-3">
               <button 
                 type="button"
                 onClick={() => setDeleteConfirmId(selectedExpense.id!)}
-                className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 dark:text-rose-400 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                className="adw-btn destructive-action text-xs font-semibold cursor-pointer"
               >
                 <Trash2 size={15} />
                 <span>Excluir</span>
@@ -1363,14 +1427,14 @@ export const Expenses: React.FC = () => {
                 <button 
                   type="button"
                   onClick={() => setSelectedExpense(null)}
-                  className="px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  className="adw-btn text-xs font-semibold cursor-pointer"
                 >
                   Fechar
                 </button>
                 <button 
                   type="button"
                   onClick={() => handleOpenEditModal(selectedExpense)}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 border border-emerald-500/30 transition-all cursor-pointer"
+                  className="adw-btn suggested-action text-xs font-semibold cursor-pointer"
                 >
                   <Edit3 size={15} />
                   <span>Editar</span>
@@ -1386,11 +1450,11 @@ export const Expenses: React.FC = () => {
       {/* ADD / EDIT MODAL (RESPONSIVE 2-COLUMN LAYOUT) */}
       {/* ========================================================================= */}
       {isFormModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div 
-            className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl ${
-              isPaymentSectionOpen ? 'max-w-4xl' : 'max-w-lg'
-            } w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[92vh]`}
+            className={`adw-dialog ${
+              isPaymentSectionOpen ? 'max-w-4xl' : 'max-w-xl'
+            } w-full p-6 shadow-2xl animate-scaleIn overflow-y-auto max-h-[92vh]`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -2083,9 +2147,9 @@ export const Expenses: React.FC = () => {
       {/* DELETE CONFIRMATION DIALOG */}
       {/* ========================================================================= */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center animate-in zoom-in-95 duration-150">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="adw-dialog max-w-sm w-full p-6 shadow-2xl text-center animate-scaleIn">
+            <div className="w-12 h-12 rounded-2xl bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-4">
               <AlertCircle size={26} />
             </div>
             <h4 className="text-base font-bold text-zinc-900 dark:text-white">Excluir Despesa?</h4>
@@ -2095,13 +2159,13 @@ export const Expenses: React.FC = () => {
             <div className="flex gap-3">
               <button 
                 onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="adw-btn flex-1 py-2 text-xs font-semibold cursor-pointer"
               >
                 Cancelar
               </button>
               <button 
                 onClick={() => handleDeleteExpense(deleteConfirmId)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold shadow-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                className="adw-btn destructive-action flex-1 py-2 text-xs font-semibold cursor-pointer"
               >
                 Excluir
               </button>

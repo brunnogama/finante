@@ -72,6 +72,40 @@ export interface IncomeRecord {
   created_at?: string;
 }
 
+const getEnrichments = (): Record<string, Partial<ExpenseRecord>> => {
+  try {
+    const raw = localStorage.getItem('finante_expense_enrichments');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveEnrichment = (id: number | string, data: Record<string, any>) => {
+  try {
+    if (!id) return;
+    const enrichments = getEnrichments();
+    enrichments[String(id)] = {
+      ...(enrichments[String(id)] || {}),
+      ...data
+    };
+    localStorage.setItem('finante_expense_enrichments', JSON.stringify(enrichments));
+  } catch (err) {
+    console.warn('Failed to save expense enrichment locally:', err);
+  }
+};
+
+const deleteEnrichment = (id: number | string) => {
+  try {
+    if (!id) return;
+    const enrichments = getEnrichments();
+    delete enrichments[String(id)];
+    localStorage.setItem('finante_expense_enrichments', JSON.stringify(enrichments));
+  } catch (err) {
+    console.warn('Failed to delete expense enrichment locally:', err);
+  }
+};
+
 export const getExpenses = async (): Promise<ExpenseRecord[]> => {
   try {
     const { data, error } = await supabase
@@ -85,28 +119,42 @@ export const getExpenses = async (): Promise<ExpenseRecord[]> => {
       return local ? JSON.parse(local) : [];
     }
 
-    const normalized = (data || []).map((item: any) => ({
-      ...item,
-      company: item.company || item.description || 'Despesa',
-      description: item.description || item.company || 'Despesa',
-      paid_amount: item.paid_amount !== undefined && item.paid_amount !== null 
+    const enrichments = getEnrichments();
+    const normalized = (data || []).map((item: any) => {
+      const enrichment = enrichments[String(item.id)] || {};
+      const company = item.company || item.description || enrichment.company || 'Despesa';
+      const paidAmount = item.paid_amount !== undefined && item.paid_amount !== null 
         ? Number(item.paid_amount) 
-        : (item.status === 'paid' ? Number(item.amount) : 0),
-      amount: Number(item.amount || 0),
-      type: item.type || 'Outros',
-      due_date: item.due_date || new Date().toISOString().split('T')[0],
-      paid_date: item.paid_date || (Number(item.paid_amount || 0) > 0 ? (item.due_date || new Date().toISOString().split('T')[0]) : undefined),
-      payment_method: item.payment_method || (Number(item.paid_amount || 0) > 0 ? 'PIX' : undefined),
-      notes: item.notes || '',
-      excess_type: item.excess_type || (item.paid_date && item.due_date && item.paid_date.split('T')[0] > item.due_date.split('T')[0] && Number(item.paid_amount || 0) > Number(item.amount || 0) ? 'late_fee' : 'overpayment'),
-      bill_attachment: item.bill_attachment || undefined,
-      bill_name: item.bill_name || undefined,
-      receipt_attachment: item.receipt_attachment || undefined,
-      receipt_name: item.receipt_name || undefined,
-      status: (item.paid_amount !== undefined && item.paid_amount !== null 
-        ? Number(item.paid_amount) >= Number(item.amount) 
-        : item.status === 'paid') ? 'paid' : 'pending'
-    }));
+        : (enrichment.paid_amount !== undefined ? Number(enrichment.paid_amount) : (item.status === 'paid' ? Number(item.amount) : 0));
+      const amount = Number(item.amount || enrichment.amount || 0);
+      const paidDate = item.paid_date || enrichment.paid_date || (paidAmount > 0 ? (item.due_date || new Date().toISOString().split('T')[0]) : undefined);
+      const paymentMethod = item.payment_method || enrichment.payment_method || (paidAmount > 0 ? 'PIX' : undefined);
+      const notes = (item.notes !== undefined && item.notes !== null && item.notes !== '') ? item.notes : (enrichment.notes || '');
+      const billAttachment = item.bill_attachment || enrichment.bill_attachment || undefined;
+      const billName = item.bill_name || enrichment.bill_name || (billAttachment ? 'Boleto / Conta' : undefined);
+      const receiptAttachment = item.receipt_attachment || enrichment.receipt_attachment || undefined;
+      const receiptName = item.receipt_name || enrichment.receipt_name || (receiptAttachment ? 'Comprovante' : undefined);
+      const excessType = item.excess_type || enrichment.excess_type || (paidDate && item.due_date && paidDate.split('T')[0] > item.due_date.split('T')[0] && paidAmount > amount ? 'late_fee' : 'overpayment');
+
+      return {
+        ...item,
+        company,
+        description: company,
+        paid_amount: paidAmount,
+        amount,
+        type: item.type || enrichment.type || 'Outros',
+        due_date: item.due_date || enrichment.due_date || new Date().toISOString().split('T')[0],
+        paid_date: paidDate,
+        payment_method: paymentMethod,
+        notes,
+        excess_type: excessType,
+        bill_attachment: billAttachment,
+        bill_name: billName,
+        receipt_attachment: receiptAttachment,
+        receipt_name: receiptName,
+        status: (paidAmount >= amount && amount > 0) || item.status === 'paid' ? 'paid' : 'pending'
+      };
+    });
 
     localStorage.setItem('finante_local_expenses', JSON.stringify(normalized));
     return normalized;
@@ -165,19 +213,27 @@ export const addExpense = async (expense: ExpenseRecord) => {
         console.warn('Fallback to local storage due to Supabase error:', stdError.message);
         const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
         const newRecord = { ...fullPayload, id: Date.now() };
+        saveEnrichment(newRecord.id, fullPayload);
         localStorage.setItem('finante_local_expenses', JSON.stringify([...local, newRecord]));
         return [newRecord];
       }
 
       if (stdData && stdData[0]) {
-        return [{ ...stdData[0], company, paid_amount }];
+        const id = stdData[0].id;
+        saveEnrichment(id, fullPayload);
+        return [{ ...stdData[0], ...fullPayload, id }];
       }
+    }
+
+    if (data && data[0]) {
+      saveEnrichment(data[0].id, fullPayload);
     }
     return data;
   } catch (err) {
     console.error('Error adding expense:', err);
     const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
     const newRecord = { ...fullPayload, id: Date.now() };
+    saveEnrichment(newRecord.id, fullPayload);
     localStorage.setItem('finante_local_expenses', JSON.stringify([...local, newRecord]));
     return [newRecord];
   }
@@ -294,6 +350,9 @@ export const updateExpense = async (id: number, expense: Partial<ExpenseRecord>)
     }
   }
 
+  // Always save enrichment locally so attachments & extended metadata are never lost
+  saveEnrichment(id, updatePayload);
+
   try {
     const { data, error } = await supabase
       .from('expenses')
@@ -323,7 +382,7 @@ export const updateExpense = async (id: number, expense: Partial<ExpenseRecord>)
         localStorage.setItem('finante_local_expenses', JSON.stringify(updated));
         return updated.filter((item: any) => item.id === id);
       }
-      return stdData;
+      return stdData ? [{ ...stdData[0], ...updatePayload }] : stdData;
     }
     return data;
   } catch (err) {
@@ -336,6 +395,7 @@ export const updateExpense = async (id: number, expense: Partial<ExpenseRecord>)
 };
 
 export const deleteExpense = async (id: number) => {
+  deleteEnrichment(id);
   try {
     const { data, error } = await supabase
       .from('expenses')
