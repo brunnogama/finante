@@ -260,8 +260,7 @@ export const Income: React.FC = () => {
 
         <button
           onClick={handleOpenAddModal}
-          style={{ backgroundColor: '#34C759' }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white font-semibold text-sm shadow-sm hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
         >
           <Plus size={18} strokeWidth={2.5} />
           <span>Nova Receita</span>
@@ -422,10 +421,9 @@ export const Income: React.FC = () => {
             </p>
             <button
               onClick={handleOpenAddModal}
-              style={{ backgroundColor: '#34C759' }}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white font-medium text-xs shadow-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer"
             >
-              <Plus size={16} />
+              <Plus size={16} strokeWidth={2.5} />
               <span>Adicionar Primeira Receita</span>
             </button>
           </div>
@@ -617,8 +615,7 @@ export const Income: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  style={{ backgroundColor: '#34C759' }}
-                  className="flex-1 px-4 py-2.5 rounded-xl text-white text-sm font-semibold shadow-xs hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all cursor-pointer"
                 >
                   {editingId ? 'Salvar Alterações' : 'Cadastrar Receita'}
                 </button>

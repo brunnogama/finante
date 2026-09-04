@@ -255,8 +255,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
               type="button"
               onClick={handleReloadApp}
               disabled={isUpdating}
-              style={{ backgroundColor: '#34C759' }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white font-semibold text-xs shadow-xs hover:opacity-95 active:scale-95 transition-all shrink-0 cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 hover:opacity-95 active:scale-95 transition-all shrink-0 cursor-pointer disabled:opacity-50"
             >
               <RefreshCw size={13} className={isUpdating ? 'animate-spin' : ''} />
               <span>{isUpdating ? 'Recarregando...' : 'Recarregar App'}</span>

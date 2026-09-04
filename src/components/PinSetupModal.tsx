@@ -74,8 +74,8 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({ onClose }) => {
           
           {step === 'success' ? (
             <>
-              <div style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)', color: '#34C759', padding: '16px', borderRadius: '50%', marginBottom: '16px' }}>
-                <CheckCircle size={40} />
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                <CheckCircle size={36} />
               </div>
               <h3>PIN Configurado!</h3>
               <p style={{ opacity: 0.7 }}>Seu aplicativo agora está protegido.</p>
