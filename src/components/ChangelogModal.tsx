@@ -17,6 +17,12 @@ interface ChangelogEntry {
 
 const BUILTIN_CHANGELOG: ChangelogEntry[] = [
   {
+    sha: '1b8f44d',
+    date: '2026-09-04T16:45:00Z',
+    title: '🌐 Login com Conta Google (OAuth) & Sincronização',
+    description: 'Autenticação segura via Google OAuth integrada ao Supabase, exibição de perfil nas configurações e desbloqueio rápido com PIN.'
+  },
+  {
     sha: '9f1a23c',
     date: '2026-09-04T16:15:00Z',
     title: '✨ Redesign Completo da Página Início & Responsividade',
