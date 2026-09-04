@@ -540,17 +540,17 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
             </button>
           </div>
 
-          {/* Switch Account / Logout */}
-          {user && (
+          {/* Switch Account / Login Options */}
+          <div className="mt-6 flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={handleSignOut}
-              className="mt-6 inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer py-1 px-3 rounded-lg hover:bg-white/5"
             >
               <LogOut size={13} />
-              <span>Trocar de conta Google</span>
+              <span>{user ? 'Trocar de Conta' : 'Fazer Login / Criar Conta'}</span>
             </button>
-          )}
+          </div>
 
         </div>
       )}
