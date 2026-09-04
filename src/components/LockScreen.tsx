@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, Fingerprint, Delete, CheckCircle2, Shield, LogOut, RefreshCw, Mail, KeyRound, ArrowLeft, UserPlus, LogIn } from 'lucide-react';
+import { WindowControls } from './WindowControls';
 import { biometricsService } from '../services/biometrics';
 import { supabase, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser } from '../services/supabase';
 
@@ -241,6 +242,25 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
 
   return (
     <div className="fixed inset-0 bg-[#1e1e1e] text-white flex flex-col items-center justify-center p-6 z-[9999] select-none animate-fadeIn">
+      {/* Top Window Drag & Controls Bar */}
+      <div 
+        className="absolute top-0 left-0 right-0 h-11 px-3.5 flex items-center justify-between z-50 select-none"
+        data-tauri-drag-region
+      >
+        <div className="flex items-center gap-2" data-tauri-drag-region>
+          <img 
+            src="/finante.png" 
+            alt="Finante" 
+            className="w-4 h-4 object-contain opacity-70" 
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }} 
+          />
+          <span className="text-[11px] font-semibold tracking-tight text-zinc-400">Finante</span>
+        </div>
+        <WindowControls />
+      </div>
+
       {/* Background glowing ambient light */}
       <div className="absolute w-[500px] h-[500px] bg-[#3584e4]/10 rounded-full blur-[120px] pointer-events-none -top-20 -left-20"></div>
       <div className="absolute w-[500px] h-[500px] bg-[#2ec27e]/10 rounded-full blur-[120px] pointer-events-none -bottom-20 -right-20"></div>
