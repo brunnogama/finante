@@ -100,6 +100,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
     } catch (err: any) {
       console.error('Google Sign In Error:', err);
       setErrorMsg(err.message || 'Não foi possível conectar ao Google.');
+    } finally {
       setIsSigningIn(false);
     }
   };

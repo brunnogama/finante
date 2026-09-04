@@ -67,6 +67,7 @@ export const Settings: React.FC = () => {
       await signInWithGoogle();
     } catch (err) {
       console.error('Error connecting google:', err);
+    } finally {
       setIsSigningIn(false);
     }
   };

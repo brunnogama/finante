@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { invoke, isTauri } from '@tauri-apps/api/core';
+import { once } from '@tauri-apps/api/event';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -814,8 +816,72 @@ export const deleteInvestment = async (id: number) => {
 ========================================================= */
 
 export const signInWithGoogle = async () => {
+  const isDesktopTauri = typeof window !== 'undefined' && (isTauri() || '__TAURI_INTERNALS__' in window);
+
+  if (isDesktopTauri) {
+    try {
+      // 1. Iniciar servidor loopback local na porta 38291
+      await invoke('start_oauth_server');
+
+      // 2. Preparar promessa para receber os tokens do callback OAuth
+      const oauthPromise = new Promise<{ access_token?: string; refresh_token?: string; code?: string; error?: string }>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Tempo limite para login com Google excedido. Tente novamente.'));
+        }, 120000);
+
+        once('oauth-callback', (event: any) => {
+          clearTimeout(timeout);
+          resolve(event.payload);
+        }).catch((err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+
+      // 3. Obter URL do Google OAuth no Supabase sem navegar na janela interna
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'http://localhost:38291',
+          skipBrowserRedirect: true
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('Não foi possível gerar a URL de autorização do Google.');
+
+      // 4. Abrir no navegador padrão do sistema (onde o usuário já está logado)
+      await invoke('open_browser', { url: data.url });
+
+      // 5. Aguardar retorno do callback do navegador
+      const payload = await oauthPromise;
+      if (payload.error) {
+        throw new Error(payload.error);
+      }
+
+      if (payload.access_token && payload.refresh_token) {
+        const { data: sessionData, error: sessionErr } = await supabase.auth.setSession({
+          access_token: payload.access_token,
+          refresh_token: payload.refresh_token
+        });
+        if (sessionErr) throw sessionErr;
+        return sessionData;
+      } else if (payload.code) {
+        const { data: codeData, error: codeErr } = await supabase.auth.exchangeCodeForSession(payload.code);
+        if (codeErr) throw codeErr;
+        return codeData;
+      }
+
+      throw new Error('Tokens de autenticação não foram recebidos.');
+    } catch (desktopOAuthErr) {
+      console.error('Desktop Google OAuth error:', desktopOAuthErr);
+      throw desktopOAuthErr;
+    }
+  }
+
+  // Fallback para Web / Navegador regular
   const isDev = window.location.hostname === 'localhost' && window.location.port !== '';
-  const redirectUrl = isDev ? window.location.origin : 'http://tauri.localhost';
+  const redirectUrl = isDev ? window.location.origin : 'http://localhost:38291';
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
