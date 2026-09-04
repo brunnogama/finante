@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Lock, Fingerprint, Delete, CheckCircle2, Shield, LogOut, RefreshCw, Mail, KeyRound, ArrowLeft, UserPlus, LogIn } from 'lucide-react';
 import { WindowControls } from './WindowControls';
+import { FinanteIcon } from './FinanteIcon';
 import { biometricsService } from '../services/biometrics';
 import { supabase, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser } from '../services/supabase';
 
@@ -248,14 +249,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
         data-tauri-drag-region
       >
         <div className="flex items-center gap-2" data-tauri-drag-region>
-          <img 
-            src="/finante.png" 
-            alt="Finante" 
-            className="w-4 h-4 object-contain opacity-70" 
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }} 
-          />
+          <FinanteIcon size={14} className="opacity-80" />
           <span className="text-[11px] font-semibold tracking-tight text-zinc-400">Finante</span>
         </div>
         <WindowControls />
@@ -271,10 +265,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
       {step === 'welcome' && (
         <div className="w-full max-w-sm flex flex-col items-center text-center relative z-10 animate-scaleIn">
           {/* Finante Logo */}
-          <div className="w-20 h-20 rounded-3xl bg-[#2a2a2a] border border-white/10 shadow-2xl flex items-center justify-center mb-6 text-[#3584e4] relative group">
-            <img src="/finante.png" alt="Finante" className="w-12 h-12 object-contain" onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }} />
+          <div className="w-20 h-20 rounded-3xl bg-[#2a2a2a] border border-white/10 shadow-2xl flex items-center justify-center mb-6 text-white relative group">
+            <FinanteIcon size={40} className="text-white" />
           </div>
 
           <h1 className="text-3xl font-black tracking-tight text-white mb-2">

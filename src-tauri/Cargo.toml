@@ -1,6 +1,6 @@
 [package]
 name = "finante"
-version = "0.2.15"
+version = "0.2.16"
 description = "Finante - Gerenciador Financeiro Pessoal"
 authors = ["Bruno Gama"]
 license = ""
