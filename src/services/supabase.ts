@@ -16,12 +16,53 @@ export interface ExpenseRecord {
   payment_method?: 'PIX' | 'Crédito' | 'Débito' | 'Boleto' | string;
   notes?: string;
   excess_type?: 'late_fee' | 'overpayment';
+  bill_attachment?: string;
+  bill_name?: string;
+  receipt_attachment?: string;
+  receipt_name?: string;
   type: string;
   status: 'pending' | 'paid';
   created_at?: string;
 }
 
 export const DEFAULT_PAYMENT_METHODS = ['PIX', 'Crédito', 'Débito', 'Boleto'] as const;
+
+export const uploadExpenseAttachment = async (
+  file: File,
+  folder: 'bills' | 'receipts' = 'bills'
+): Promise<{ url: string; name: string }> => {
+  const fileExt = file.name.split('.').pop() || 'dat';
+  const fileName = `${folder}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+  const filePath = `${folder}/${fileName}`;
+
+  try {
+    const { data, error } = await supabase.storage
+      .from('finante_attachments')
+      .upload(filePath, file, { upsert: true });
+
+    if (!error && data) {
+      const { data: publicUrlData } = supabase.storage
+        .from('finante_attachments')
+        .getPublicUrl(filePath);
+
+      if (publicUrlData?.publicUrl) {
+        return { url: publicUrlData.publicUrl, name: file.name };
+      }
+    }
+  } catch (storageErr) {
+    console.warn('Supabase storage upload fallback to base64 DataURL:', storageErr);
+  }
+
+  // Graceful fallback to DataURL so attachments always work flawlessly
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve({ url: reader.result as string, name: file.name });
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+};
 
 export interface IncomeRecord {
   id?: number;
@@ -58,6 +99,10 @@ export const getExpenses = async (): Promise<ExpenseRecord[]> => {
       payment_method: item.payment_method || (Number(item.paid_amount || 0) > 0 ? 'PIX' : undefined),
       notes: item.notes || '',
       excess_type: item.excess_type || (item.paid_date && item.due_date && item.paid_date.split('T')[0] > item.due_date.split('T')[0] && Number(item.paid_amount || 0) > Number(item.amount || 0) ? 'late_fee' : 'overpayment'),
+      bill_attachment: item.bill_attachment || undefined,
+      bill_name: item.bill_name || undefined,
+      receipt_attachment: item.receipt_attachment || undefined,
+      receipt_name: item.receipt_name || undefined,
       status: (item.paid_amount !== undefined && item.paid_amount !== null 
         ? Number(item.paid_amount) >= Number(item.amount) 
         : item.status === 'paid') ? 'paid' : 'pending'
@@ -88,6 +133,10 @@ export const addExpense = async (expense: ExpenseRecord) => {
     payment_method: paid_amount > 0 ? (expense.payment_method || 'PIX') : null,
     notes: expense.notes?.trim() || '',
     excess_type: expense.excess_type || (paid_amount > amount ? (expense.paid_date && expense.due_date && expense.paid_date > expense.due_date ? 'late_fee' : 'overpayment') : undefined),
+    bill_attachment: expense.bill_attachment || null,
+    bill_name: expense.bill_name || null,
+    receipt_attachment: expense.receipt_attachment || null,
+    receipt_name: expense.receipt_name || null,
     type: expense.type,
     status: status
   };

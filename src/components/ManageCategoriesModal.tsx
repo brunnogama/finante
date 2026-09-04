@@ -323,7 +323,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
 
               <button
                 type="submit"
-                className="w-full py-2 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-zinc-950 font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {editingCompanyId ? <Check size={14} /> : <Plus size={14} />}
                 <span>{editingCompanyId ? 'Salvar Alterações' : 'Adicionar Empresa'}</span>
@@ -400,7 +400,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                 />
                 <button
                   type="submit"
-                  className="py-2 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-zinc-950 font-bold text-xs shadow-sm transition-all flex items-center gap-1"
+                  className="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center gap-1 cursor-pointer"
                 >
                   <Plus size={14} />
                   <span>Adicionar</span>

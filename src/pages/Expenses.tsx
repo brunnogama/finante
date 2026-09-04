@@ -12,16 +12,20 @@ import {
   Trash2, 
   X, 
   Check, 
-  ChevronRight,
+  ChevronRight, 
   ChevronDown, 
-  BookmarkPlus,
-  Wallet,
-  Receipt,
-  PiggyBank,
-  AlertTriangle,
-  FileText,
-  Flame,
-  CreditCard
+  BookmarkPlus, 
+  Wallet, 
+  Receipt, 
+  PiggyBank, 
+  AlertTriangle, 
+  FileText, 
+  Flame, 
+  CreditCard,
+  Paperclip,
+  Eye,
+  Download,
+  UploadCloud
 } from 'lucide-react';
 import { 
   getExpenses, 
@@ -32,6 +36,7 @@ import {
   getCompanies, 
   addCompany, 
   getIncomes,
+  uploadExpenseAttachment,
   supabase, 
   type ExpenseRecord, 
   type CompanyRecord,
@@ -86,6 +91,17 @@ export const Expenses: React.FC = () => {
   const [isPaymentSectionOpen, setIsPaymentSectionOpen] = useState(false);
   const [excessType, setExcessType] = useState<'late_fee' | 'overpayment'>('late_fee');
   const [saveCompanyToFavorites, setSaveCompanyToFavorites] = useState(true);
+
+  // Attachment states
+  const [billAttachment, setBillAttachment] = useState<string | null>(null);
+  const [billName, setBillName] = useState<string>('');
+  const [receiptAttachment, setReceiptAttachment] = useState<string | null>(null);
+  const [receiptName, setReceiptName] = useState<string>('');
+  const [isUploadingBill, setIsUploadingBill] = useState(false);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+
+  // Document preview modal
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; title: string } | null>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -238,6 +254,41 @@ export const Expenses: React.FC = () => {
   const currentAmountPaid = parseCurrencyInput(amountPaidInput);
   const currentFormBalance = Math.max(0, currentAmountToPay - currentAmountPaid);
 
+  // Upload handlers
+  const handleBillFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBill(true);
+    try {
+      const res = await uploadExpenseAttachment(file, 'bills');
+      setBillAttachment(res.url);
+      setBillName(res.name);
+    } catch (err) {
+      console.error('Error uploading bill:', err);
+      alert('Erro ao carregar o arquivo do boleto/conta.');
+    } finally {
+      setIsUploadingBill(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleReceiptFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingReceipt(true);
+    try {
+      const res = await uploadExpenseAttachment(file, 'receipts');
+      setReceiptAttachment(res.url);
+      setReceiptName(res.name);
+    } catch (err) {
+      console.error('Error uploading receipt:', err);
+      alert('Erro ao carregar o comprovante.');
+    } finally {
+      setIsUploadingReceipt(false);
+      e.target.value = '';
+    }
+  };
+
   // Form Reset
   const resetForm = () => {
     setEditingId(null);
@@ -251,6 +302,10 @@ export const Expenses: React.FC = () => {
     setCompany('');
     setAmountToPayInput('');
     setAmountPaidInput('');
+    setBillAttachment(null);
+    setBillName('');
+    setReceiptAttachment(null);
+    setReceiptName('');
     setIsFormCategoryDropdownOpen(false);
     setIsCompanySuggestionsOpen(false);
     setSaveCompanyToFavorites(true);
@@ -274,6 +329,10 @@ export const Expenses: React.FC = () => {
     setCompany(expense.company || expense.description || '');
     setAmountToPayInput(formatCurrency(expense.amount || 0));
     setAmountPaidInput(hasPayment ? formatCurrency(expense.paid_amount || 0) : '');
+    setBillAttachment(expense.bill_attachment || null);
+    setBillName(expense.bill_name || '');
+    setReceiptAttachment(expense.receipt_attachment || null);
+    setReceiptName(expense.receipt_name || '');
     setIsFormCategoryDropdownOpen(false);
     setIsCompanySuggestionsOpen(false);
     setSaveCompanyToFavorites(false);
@@ -328,6 +387,10 @@ export const Expenses: React.FC = () => {
       payment_method: actualPaidAmount > 0 ? paymentMethod : undefined,
       notes: notes.trim(),
       excess_type: actualPaidAmount > currentAmountToPay ? excessType : undefined,
+      bill_attachment: billAttachment || undefined,
+      bill_name: billName || undefined,
+      receipt_attachment: actualPaidAmount > 0 ? (receiptAttachment || undefined) : undefined,
+      receipt_name: actualPaidAmount > 0 ? (receiptName || undefined) : undefined,
       amount: currentAmountToPay,
       paid_amount: actualPaidAmount,
       status: actualPaidAmount >= currentAmountToPay && currentAmountToPay > 0 ? 'paid' : 'pending'
@@ -953,6 +1016,14 @@ export const Expenses: React.FC = () => {
                                   <span className="truncate max-w-[180px] sm:max-w-none text-xs md:text-sm">
                                     {exp.company || exp.description || 'Despesa'}
                                   </span>
+                                  {(exp.bill_attachment || exp.receipt_attachment) && (
+                                    <span 
+                                      className="inline-flex items-center text-zinc-400 hover:text-indigo-500 transition-colors shrink-0"
+                                      title={exp.bill_attachment && exp.receipt_attachment ? "Boleto e comprovante anexados" : exp.bill_attachment ? "Boleto anexado" : "Comprovante anexado"}
+                                    >
+                                      <Paperclip size={12} />
+                                    </span>
+                                  )}
                                 </div>
                                 {exp.notes && (
                                   <div className="text-[11px] font-normal text-zinc-400 dark:text-zinc-500 mt-0.5 truncate max-w-[220px] flex items-center gap-1">
@@ -1215,6 +1286,68 @@ export const Expenses: React.FC = () => {
                     </p>
                   </div>
                 )}
+
+                {/* Document & Receipt Attachments in Detail Modal */}
+                {(selectedExpense.bill_attachment || selectedExpense.receipt_attachment) && (
+                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
+                      Documentos Anexados
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedExpense.bill_attachment && (
+                        <div className="p-2.5 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 truncate">
+                            <FileText size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                            <div className="truncate">
+                              <div className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                                {selectedExpense.bill_name || 'Boleto / Conta'}
+                              </div>
+                              <div className="text-[10px] text-zinc-500 dark:text-zinc-400">Documento da Conta</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc({
+                              url: selectedExpense.bill_attachment!,
+                              name: selectedExpense.bill_name || 'Boleto/Conta',
+                              title: 'Boleto / Documento da Conta'
+                            })}
+                            className="p-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 transition-colors shrink-0 cursor-pointer"
+                            title="Visualizar"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
+                      )}
+
+                      {selectedExpense.receipt_attachment && (
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 truncate">
+                            <Receipt size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <div className="truncate">
+                              <div className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                                {selectedExpense.receipt_name || 'Comprovante'}
+                              </div>
+                              <div className="text-[10px] text-zinc-500 dark:text-zinc-400">Recibo de Pagamento</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc({
+                              url: selectedExpense.receipt_attachment!,
+                              name: selectedExpense.receipt_name || 'Comprovante',
+                              title: 'Comprovante de Pagamento'
+                            })}
+                            className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 transition-colors shrink-0 cursor-pointer"
+                            title="Visualizar"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Quick Pay Action */}
@@ -1252,7 +1385,7 @@ export const Expenses: React.FC = () => {
                 <button 
                   type="button"
                   onClick={() => handleOpenEditModal(selectedExpense)}
-                  className="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-zinc-950 font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 border border-emerald-500/30 transition-all cursor-pointer"
                 >
                   <Edit3 size={15} />
                   <span>Editar</span>
@@ -1265,22 +1398,32 @@ export const Expenses: React.FC = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* ADD / EDIT MODAL */}
+      {/* ADD / EDIT MODAL (RESPONSIVE 2-COLUMN LAYOUT) */}
       {/* ========================================================================= */}
       {isFormModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
           <div 
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150 overflow-visible"
+            className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl ${
+              isPaymentSectionOpen ? 'max-w-4xl' : 'max-w-lg'
+            } w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[92vh]`}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Modal Header */}
             <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800/80 mb-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                   <Receipt size={18} strokeWidth={2.3} />
                 </div>
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
-                  {editingId ? 'Editar Despesa' : 'Nova Despesa'}
-                </h3>
+                <div>
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">
+                    {editingId ? 'Editar Despesa' : 'Nova Despesa'}
+                  </h3>
+                  {isPaymentSectionOpen && (
+                    <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+                      Preencha os dados da conta e o comprovante do pagamento
+                    </span>
+                  )}
+                </div>
               </div>
               <button 
                 onClick={() => setIsFormModalOpen(false)}
@@ -1292,435 +1435,568 @@ export const Expenses: React.FC = () => {
 
             <form onSubmit={handleSaveExpense} className="space-y-4">
               
-              {/* Empresa with Autocomplete */}
-              <div className="relative z-30" ref={companyInputRef}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Empresa / Beneficiário *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setManageModalInitialTab('companies');
-                      setIsManageModalOpen(true);
-                    }}
-                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                  >
-                    <span>Gerenciar Empresas</span>
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input 
-                    type="text"
-                    required
-                    placeholder="Ex: Netflix, Copel, Aluguel, Nubank..."
-                    value={company}
-                    onFocus={() => setIsCompanySuggestionsOpen(true)}
-                    onChange={(e) => {
-                      setCompany(e.target.value);
-                      setIsCompanySuggestionsOpen(true);
-                    }}
-                    className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-semibold"
-                  />
-                </div>
-
-                {/* Company Suggestions Dropdown */}
-                {isCompanySuggestionsOpen && companySuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-44 overflow-y-auto">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-3 py-1">
-                      Empresas Cadastradas
-                    </div>
-                    {companySuggestions.map(comp => (
-                      <button
-                        key={comp.id || comp.name}
-                        type="button"
-                        onClick={() => handleSelectRegisteredCompany(comp)}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <CategoryIcon type={comp.default_type} size={13} containerClassName="w-6 h-6 rounded-lg" />
-                          <span className="font-bold text-zinc-900 dark:text-white">{comp.name}</span>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                          {comp.default_type}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Grid: Tipo de Despesa & Data de Vencimento */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className={`grid grid-cols-1 ${isPaymentSectionOpen ? 'md:grid-cols-2' : ''} gap-5`}>
                 
-                {/* Category Dropdown */}
-                <div className="relative z-20" ref={formCategoryDropdownRef}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                      Tipo de Despesa *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsFormCategoryDropdownOpen(false);
-                        setManageModalInitialTab('types');
-                        setIsManageModalOpen(true);
-                      }}
-                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      + Novo
-                    </button>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setIsFormCategoryDropdownOpen(!isFormCategoryDropdownOpen)}
-                    className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between font-semibold"
-                  >
-                    <span>{expenseType}</span>
-                    <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isFormCategoryDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isFormCategoryDropdownOpen && (
-                    <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                      {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => {
-                            setExpenseType(cat);
-                            setIsFormCategoryDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
-                            expenseType === cat 
-                              ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold' 
-                              : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                          }`}
-                        >
-                          <span>{cat}</span>
-                          {expenseType === cat && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
-                        </button>
-                      ))}
+                {/* ============================================================= */}
+                {/* COLUNA ESQUERDA: DADOS DA DESPESA / CONTA */}
+                {/* ============================================================= */}
+                <div className="space-y-4">
+                  {isPaymentSectionOpen && (
+                    <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800 text-xs font-bold text-zinc-900 dark:text-white">
+                      <Receipt size={15} className="text-indigo-500" />
+                      <span>1. Dados da Conta / Despesa</span>
                     </div>
                   )}
-                </div>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                    Data de Vencimento *
-                  </label>
-                  <DatePicker 
-                    value={dueDate} 
-                    onChange={(d) => setDueDate(d)} 
-                    required 
-                  />
-                </div>
-              </div>
-
-              {/* Grid: Valor a Pagar & Observações */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                  Valor a Pagar *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
-                    R$
-                  </span>
-                  <input 
-                    type="text"
-                    required
-                    placeholder="0,00"
-                    value={amountToPayInput.replace('R$', '').trim()}
-                    onChange={handleAmountToPayChange}
-                    className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                  />
-                </div>
-              </div>
-
-              {/* Observações Field */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                  Observações (Opcional)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Informações adicionais, código de barras, parcelamento, etc..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 resize-none font-medium"
-                />
-              </div>
-
-              {/* Option to save company if new */}
-              {!editingId && company.trim() && !companies.some(c => c.name.toLowerCase() === company.trim().toLowerCase()) && (
-                <label className="flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
-                  <input 
-                    type="checkbox"
-                    checked={saveCompanyToFavorites}
-                    onChange={(e) => setSaveCompanyToFavorites(e.target.checked)}
-                    className="rounded border-zinc-300 dark:border-zinc-700 text-emerald-600 focus:ring-0"
-                  />
-                  <span className="flex items-center gap-1">
-                    <BookmarkPlus size={14} className="text-emerald-500" />
-                    Salvar "{company.trim()}" em Fornecedores favoritos
-                  </span>
-                </label>
-              )}
-
-              {/* Divisor / Seção de Pagamento Separada */}
-              <div className="pt-1">
-                {!isPaymentSectionOpen ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsPaymentSectionOpen(true);
-                      if (!amountPaidInput && currentAmountToPay > 0) {
-                        setAmountPaidInput(formatCurrency(currentAmountToPay));
-                      }
-                    }}
-                    className="w-full py-3 px-4 rounded-2xl bg-zinc-100/80 hover:bg-zinc-200/80 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-dashed border-emerald-500/50 hover:border-emerald-500 text-zinc-700 dark:text-zinc-200 text-xs font-bold flex items-center justify-between transition-all cursor-pointer group shadow-xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <Wallet size={16} strokeWidth={2.3} />
-                      </div>
-                      <div className="text-left">
-                        <div className="font-bold text-zinc-900 dark:text-white">Registrar Pagamento</div>
-                        <div className="text-[11px] font-normal text-zinc-500 dark:text-zinc-400">Informar data, meio (PIX, Boleto, Cartão) e valor pago</div>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
-                      <Plus size={14} />
-                      Adicionar Pagamento
-                    </span>
-                  </button>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/80 space-y-3.5 animate-in fade-in duration-150">
-                    <div className="flex items-center justify-between pb-2 border-b border-zinc-200/80 dark:border-zinc-700/80">
-                      <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-white">
-                        <Wallet size={15} className="text-emerald-500" />
-                        <span>Dados do Pagamento</span>
-                      </div>
+                  {/* Empresa with Autocomplete */}
+                  <div className="relative z-30" ref={companyInputRef}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        Empresa / Beneficiário *
+                      </label>
                       <button
                         type="button"
                         onClick={() => {
-                          setIsPaymentSectionOpen(false);
-                          setAmountPaidInput('');
+                          setManageModalInitialTab('companies');
+                          setIsManageModalOpen(true);
                         }}
-                        className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                       >
-                        <X size={13} />
-                        <span>Cancelar Pagamento</span>
+                        <span>Gerenciar</span>
                       </button>
                     </div>
 
-                    {/* Grid: Valor Pago & Meio de Pagamento */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                            Valor Pago *
-                          </label>
-                          {currentAmountToPay > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setAmountPaidInput(formatCurrency(currentAmountToPay))}
-                              className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                            >
-                              Pagar Total
-                            </button>
-                          )}
-                        </div>
-                        <div className="relative">
-                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
-                            R$
-                          </span>
-                          <input 
-                            type="text"
-                            placeholder="0,00"
-                            value={amountPaidInput.replace('R$', '').trim()}
-                            onChange={handleAmountPaidChange}
-                            className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-                          />
-                        </div>
-                      </div>
+                    <div className="relative">
+                      <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input 
+                        type="text"
+                        required
+                        placeholder="Ex: Netflix, Copel, Aluguel, Nubank..."
+                        value={company}
+                        onFocus={() => setIsCompanySuggestionsOpen(true)}
+                        onChange={(e) => {
+                          setCompany(e.target.value);
+                          setIsCompanySuggestionsOpen(true);
+                        }}
+                        className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-semibold"
+                      />
+                    </div>
 
-                      {/* Meio de Pagamento */}
-                      <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                          Meio de Pagamento *
+                    {/* Company Suggestions Dropdown */}
+                    {isCompanySuggestionsOpen && companySuggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-44 overflow-y-auto">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-3 py-1">
+                          Empresas Cadastradas
+                        </div>
+                        {companySuggestions.map(comp => (
+                          <button
+                            key={comp.id || comp.name}
+                            type="button"
+                            onClick={() => handleSelectRegisteredCompany(comp)}
+                            className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <CategoryIcon type={comp.default_type} size={13} containerClassName="w-6 h-6 rounded-lg" />
+                              <span className="font-bold text-zinc-900 dark:text-white">{comp.name}</span>
+                            </div>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                              {comp.default_type}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Grid: Tipo de Despesa & Data de Vencimento */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    
+                    {/* Category Dropdown */}
+                    <div className="relative z-20" ref={formCategoryDropdownRef}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                          Tipo de Despesa *
                         </label>
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {(['PIX', 'Crédito', 'Débito', 'Boleto'] as const).map((method) => (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFormCategoryDropdownOpen(false);
+                            setManageModalInitialTab('types');
+                            setIsManageModalOpen(true);
+                          }}
+                          className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          + Novo
+                        </button>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setIsFormCategoryDropdownOpen(!isFormCategoryDropdownOpen)}
+                        className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between font-semibold"
+                      >
+                        <span className="truncate">{expenseType}</span>
+                        <ChevronDown size={16} className={`text-zinc-400 transition-transform ${isFormCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isFormCategoryDropdownOpen && (
+                        <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
+                          {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
                             <button
-                              key={method}
+                              key={cat}
                               type="button"
-                              onClick={() => setPaymentMethod(method)}
-                              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                                paymentMethod === method
-                                  ? 'bg-emerald-600 text-white shadow-xs'
-                                  : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                              onClick={() => {
+                                setExpenseType(cat);
+                                setIsFormCategoryDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                                expenseType === cat 
+                                  ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold' 
+                                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                               }`}
                             >
-                              {paymentMethod === method && <Check size={12} strokeWidth={3} />}
-                              <span>{method}</span>
+                              <span>{cat}</span>
+                              {expenseType === cat && <Check size={14} className="text-emerald-600 dark:text-emerald-400" />}
                             </button>
                           ))}
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Data de Pagamento */}
                     <div>
                       <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-                        Data de Pagamento *
+                        Data de Vencimento *
                       </label>
                       <DatePicker 
-                        value={paidDate} 
-                        onChange={(d) => setPaidDate(d)} 
+                        value={dueDate} 
+                        onChange={(d) => setDueDate(d)} 
                         required 
                       />
-                      <div className="text-xs pt-1.5">
-                        {paidDate && dueDate && paidDate > dueDate ? (
-                          <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
-                            <AlertTriangle size={14} className="shrink-0" />
-                            Pago após a data de vencimento
-                          </span>
-                        ) : (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
-                            <CheckCircle2 size={14} className="shrink-0" />
-                            Pago em dia
-                          </span>
-                        )}
-                      </div>
+                    </div>
+                  </div>
+
+                  {/* Valor a Pagar */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                      Valor a Pagar *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
+                        R$
+                      </span>
+                      <input 
+                        type="text"
+                        required
+                        placeholder="0,00"
+                        value={amountToPayInput.replace('R$', '').trim()}
+                        onChange={handleAmountToPayChange}
+                        className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Observações */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                      Observações (Opcional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Informações adicionais, código de barras, parcelamento..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full bg-zinc-100/80 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 resize-none font-medium"
+                    />
+                  </div>
+
+                  {/* Anexar Boleto / Fatura / Conta */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        Boleto / Conta / Fatura (Opcional)
+                      </label>
+                      {billAttachment && (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDoc({ url: billAttachment, name: billName || 'Boleto/Conta', title: 'Boleto / Documento da Conta' })}
+                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                        >
+                          <Eye size={12} />
+                          <span>Visualizar</span>
+                        </button>
+                      )}
                     </div>
 
-                    {/* Classificação da Diferença Paga a Mais */}
-                    {currentAmountPaid > currentAmountToPay && (
-                      <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700/80 space-y-2.5 animate-in fade-in duration-150">
-                        <div className="flex items-start gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                            <AlertTriangle size={13} strokeWidth={2.5} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-tight">
-                              Diferença paga a mais: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">+{formatCurrency(currentAmountPaid - currentAmountToPay)}</span>
-                            </h4>
-                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                              Como você deseja categorizar essa quantia excedente?
-                            </p>
-                          </div>
+                    {!billAttachment ? (
+                      <label className={`flex items-center justify-center gap-2.5 p-3 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-indigo-500/70 dark:hover:border-indigo-500/70 bg-zinc-50/70 hover:bg-indigo-50/30 dark:bg-zinc-800/30 dark:hover:bg-zinc-800/60 cursor-pointer transition-all ${isUploadingBill ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <input 
+                          type="file" 
+                          accept="image/*,application/pdf" 
+                          onChange={handleBillFileUpload} 
+                          className="hidden" 
+                        />
+                        <UploadCloud size={17} className="text-zinc-400 dark:text-zinc-500 group-hover:text-indigo-500" />
+                        <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                          {isUploadingBill ? 'Carregando documento...' : 'Anexar Boleto ou Fatura (PDF / Foto)'}
+                        </span>
+                      </label>
+                    ) : (
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/30">
+                        <div className="flex items-center gap-2 truncate max-w-[220px]">
+                          <FileText size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                          <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                            {billName || 'Boleto/Conta anexada'}
+                          </span>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-                          {/* Opção: Multa e Juros */}
+                        <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => setExcessType('late_fee')}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                              excessType === 'late_fee'
-                                ? 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500 text-rose-900 dark:text-rose-100 ring-1 ring-rose-500'
-                                : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
-                            }`}
+                            onClick={() => setPreviewDoc({ url: billAttachment, name: billName || 'Boleto/Conta', title: 'Boleto / Documento da Conta' })}
+                            className="p-1 rounded-lg hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 cursor-pointer"
+                            title="Visualizar"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
-                                <Flame size={13} />
-                                <span>Multa e Juros</span>
-                              </div>
-                              <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                                excessType === 'late_fee' ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-400'
-                              }`}>
-                                {excessType === 'late_fee' && <Check size={8} strokeWidth={3} />}
-                              </div>
-                            </div>
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
-                              Soma automaticamente como despesa de Multa e Juros nos relatórios.
-                            </p>
+                            <Eye size={14} />
                           </button>
-
-                          {/* Opção: Pagamento a Maior */}
                           <button
                             type="button"
-                            onClick={() => setExcessType('overpayment')}
-                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                              excessType === 'overpayment'
-                                ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500 text-blue-900 dark:text-blue-100 ring-1 ring-blue-500'
-                                : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
-                            }`}
+                            onClick={() => {
+                              setBillAttachment(null);
+                              setBillName('');
+                            }}
+                            className="p-1 rounded-lg hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 cursor-pointer"
+                            title="Remover anexo"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
-                                <Wallet size={13} />
-                                <span>Pagamento a Maior</span>
-                              </div>
-                              <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                                excessType === 'overpayment' ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-400'
-                              }`}>
-                                {excessType === 'overpayment' && <Check size={8} strokeWidth={3} />}
-                              </div>
-                            </div>
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
-                              Registra normalmente sem incidência de juros ou multas por atraso.
-                            </p>
+                            <X size={14} />
                           </button>
                         </div>
                       </div>
                     )}
                   </div>
+
+                  {/* Option to save company if new */}
+                  {!editingId && company.trim() && !companies.some(c => c.name.toLowerCase() === company.trim().toLowerCase()) && (
+                    <label className="flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
+                      <input 
+                        type="checkbox"
+                        checked={saveCompanyToFavorites}
+                        onChange={(e) => setSaveCompanyToFavorites(e.target.checked)}
+                        className="rounded border-zinc-300 dark:border-zinc-700 text-emerald-600 focus:ring-0"
+                      />
+                      <span className="flex items-center gap-1">
+                        <BookmarkPlus size={14} className="text-emerald-500" />
+                        Salvar "{company.trim()}" em Fornecedores favoritos
+                      </span>
+                    </label>
+                  )}
+
+                  {/* If payment is NOT open, show the "+ Registrar Pagamento" banner */}
+                  {!isPaymentSectionOpen && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPaymentSectionOpen(true);
+                          if (!amountPaidInput && currentAmountToPay > 0) {
+                            setAmountPaidInput(formatCurrency(currentAmountToPay));
+                          }
+                        }}
+                        className="w-full py-3 px-4 rounded-2xl bg-zinc-100/80 hover:bg-zinc-200/80 dark:bg-zinc-800/60 dark:hover:bg-zinc-800 border border-dashed border-emerald-500/50 hover:border-emerald-500 text-zinc-700 dark:text-zinc-200 text-xs font-bold flex items-center justify-between transition-all cursor-pointer group shadow-xs"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                            <Wallet size={16} strokeWidth={2.3} />
+                          </div>
+                          <div className="text-left">
+                            <div className="font-bold text-zinc-900 dark:text-white">Registrar Pagamento</div>
+                            <div className="text-[11px] font-normal text-zinc-500 dark:text-zinc-400">Informar data, meio (PIX, Boleto, Cartão), valor e recibo</div>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                          <Plus size={14} />
+                          Adicionar Pagamento
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* ============================================================= */}
+                {/* COLUNA DIREITA: DADOS DO PAGAMENTO (QUANDO ABERTO) */}
+                {/* ============================================================= */}
+                {isPaymentSectionOpen && (
+                  <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700/70 space-y-3.5 flex flex-col justify-between">
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between pb-2 border-b border-zinc-200/80 dark:border-zinc-700/80">
+                        <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-white">
+                          <Wallet size={15} className="text-emerald-500" />
+                          <span>2. Dados do Pagamento</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPaymentSectionOpen(false);
+                            setAmountPaidInput('');
+                            setReceiptAttachment(null);
+                            setReceiptName('');
+                          }}
+                          className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <X size={13} />
+                          <span>Cancelar Pagamento</span>
+                        </button>
+                      </div>
+
+                      {/* Grid: Valor Pago & Meio de Pagamento */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                              Valor Pago *
+                            </label>
+                            {currentAmountToPay > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setAmountPaidInput(formatCurrency(currentAmountToPay))}
+                                className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+                              >
+                                Pagar Total
+                              </button>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-semibold">
+                              R$
+                            </span>
+                            <input 
+                              type="text"
+                              placeholder="0,00"
+                              value={amountPaidInput.replace('R$', '').trim()}
+                              onChange={handleAmountPaidChange}
+                              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Meio de Pagamento */}
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                            Meio de Pagamento *
+                          </label>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {(['PIX', 'Crédito', 'Débito', 'Boleto'] as const).map((method) => (
+                              <button
+                                key={method}
+                                type="button"
+                                onClick={() => setPaymentMethod(method)}
+                                className={`py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                  paymentMethod === method
+                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                }`}
+                              >
+                                {paymentMethod === method && <Check size={12} strokeWidth={3} />}
+                                <span>{method}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Data de Pagamento */}
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+                          Data de Pagamento *
+                        </label>
+                        <DatePicker 
+                          value={paidDate} 
+                          onChange={(d) => setPaidDate(d)} 
+                          required 
+                        />
+                        <div className="text-xs pt-1.5">
+                          {paidDate && dueDate && paidDate > dueDate ? (
+                            <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1.5">
+                              <AlertTriangle size={14} className="shrink-0" />
+                              Pago após a data de vencimento
+                            </span>
+                          ) : (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5">
+                              <CheckCircle2 size={14} className="shrink-0" />
+                              Pago em dia
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Anexo de Comprovante / Recibo */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                            Comprovante / Recibo (Opcional)
+                          </label>
+                          {receiptAttachment && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDoc({ url: receiptAttachment, name: receiptName || 'Comprovante', title: 'Comprovante de Pagamento' })}
+                              className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                            >
+                              <Eye size={12} />
+                              <span>Visualizar</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {!receiptAttachment ? (
+                          <label className={`flex items-center justify-center gap-2.5 p-3 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-emerald-500/70 dark:hover:border-emerald-500/70 bg-white/70 hover:bg-emerald-50/30 dark:bg-zinc-900/60 dark:hover:bg-zinc-900/90 cursor-pointer transition-all ${isUploadingReceipt ? 'opacity-50 pointer-events-none' : ''}`}>
+                            <input 
+                              type="file" 
+                              accept="image/*,application/pdf" 
+                              onChange={handleReceiptFileUpload} 
+                              className="hidden" 
+                            />
+                            <UploadCloud size={17} className="text-zinc-400 dark:text-zinc-500 group-hover:text-emerald-500" />
+                            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                              {isUploadingReceipt ? 'Carregando comprovante...' : 'Anexar Comprovante (PDF / Foto)'}
+                            </span>
+                          </label>
+                        ) : (
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30">
+                            <div className="flex items-center gap-2 truncate max-w-[220px]">
+                              <Receipt size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
+                                {receiptName || 'Comprovante anexado'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDoc({ url: receiptAttachment, name: receiptName || 'Comprovante', title: 'Comprovante de Pagamento' })}
+                                className="p-1 rounded-lg hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 cursor-pointer"
+                                title="Visualizar"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReceiptAttachment(null);
+                                  setReceiptName('');
+                                }}
+                                className="p-1 rounded-lg hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 cursor-pointer"
+                                title="Remover anexo"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Classificação da Diferença Paga a Mais */}
+                      {currentAmountPaid > currentAmountToPay && (
+                        <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700/80 space-y-2.5 animate-in fade-in duration-150">
+                          <div className="flex items-start gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                              <AlertTriangle size={13} strokeWidth={2.5} />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold text-zinc-900 dark:text-white leading-tight">
+                                Diferença paga a mais: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">+{formatCurrency(currentAmountPaid - currentAmountToPay)}</span>
+                              </h4>
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                                Como categorizar essa quantia excedente?
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                            {/* Opção: Multa e Juros */}
+                            <button
+                              type="button"
+                              onClick={() => setExcessType('late_fee')}
+                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                                excessType === 'late_fee'
+                                  ? 'bg-rose-500/10 dark:bg-rose-500/15 border-rose-500 text-rose-900 dark:text-rose-100 ring-1 ring-rose-500'
+                                  : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                                  <Flame size={13} />
+                                  <span>Multa e Juros</span>
+                                </div>
+                                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                  excessType === 'late_fee' ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-400'
+                                }`}>
+                                  {excessType === 'late_fee' && <Check size={8} strokeWidth={3} />}
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                                Soma como despesa de Multa e Juros nos relatórios.
+                              </p>
+                            </button>
+
+                            {/* Opção: Pagamento a Maior */}
+                            <button
+                              type="button"
+                              onClick={() => setExcessType('overpayment')}
+                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                                excessType === 'overpayment'
+                                  ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500 text-blue-900 dark:text-blue-100 ring-1 ring-blue-500'
+                                  : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+                                  <Wallet size={13} />
+                                  <span>Pagamento a Maior</span>
+                                </div>
+                                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                                  excessType === 'overpayment' ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-400'
+                                }`}>
+                                  {excessType === 'overpayment' && <Check size={8} strokeWidth={3} />}
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                                Registra sem incidência de juros por atraso.
+                              </p>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Saldo Restante e Status */}
+                    <div className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-between mt-2">
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
+                          Saldo Restante
+                        </span>
+                        <span className={`text-sm font-bold tabular-nums ${
+                          currentFormBalance === 0 && currentAmountToPay > 0 
+                            ? 'text-emerald-600 dark:text-emerald-400' 
+                            : 'text-zinc-900 dark:text-white'
+                        }`}>
+                          {formatCurrency(currentFormBalance)}
+                        </span>
+                      </div>
+                      <div>
+                        {currentFormBalance === 0 && currentAmountToPay > 0 ? (
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                            <Check size={12} strokeWidth={3} />
+                            Quitada ({paymentMethod})
+                          </span>
+                        ) : currentAmountPaid > 0 && currentFormBalance > 0 ? (
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">
+                            Parcial ({paymentMethod})
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {/* Live Saldo Feedback */}
-              <div className="p-3.5 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40 flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
-                    Saldo Restante Calculado
-                  </span>
-                  <span className={`text-base font-bold tabular-nums ${
-                    isPaymentSectionOpen && currentFormBalance === 0 && currentAmountToPay > 0 
-                      ? 'text-emerald-600 dark:text-emerald-400' 
-                      : 'text-zinc-900 dark:text-white'
-                  }`}>
-                    {formatCurrency(isPaymentSectionOpen ? currentFormBalance : currentAmountToPay)}
-                  </span>
-                </div>
-                <div>
-                  {isPaymentSectionOpen && currentFormBalance === 0 && currentAmountToPay > 0 ? (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                      Quitada ({paymentMethod})
-                    </span>
-                  ) : isPaymentSectionOpen && currentAmountPaid > 0 && currentFormBalance > 0 ? (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">
-                      Parcial ({paymentMethod})
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
-                      Pendente
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Option to save company if new */}
-              {!editingId && company.trim() && !companies.some(c => c.name.toLowerCase() === company.trim().toLowerCase()) && (
-                <label className="flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
-                  <input 
-                    type="checkbox"
-                    checked={saveCompanyToFavorites}
-                    onChange={(e) => setSaveCompanyToFavorites(e.target.checked)}
-                    className="rounded border-zinc-300 dark:border-zinc-700 text-emerald-600 focus:ring-0"
-                  />
-                  <span className="flex items-center gap-1">
-                    <BookmarkPlus size={14} className="text-emerald-500" />
-                    Salvar "{company.trim()}" em Fornecedores favoritos
-                  </span>
-                </label>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-2">
+              {/* Actions Footer */}
+              <div className="flex gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
                 <button 
                   type="button"
                   onClick={() => setIsFormModalOpen(false)}
@@ -1737,6 +2013,83 @@ export const Expenses: React.FC = () => {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DOCUMENT PREVIEW MODAL */}
+      {/* ========================================================================= */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-150">
+          <div 
+            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5 truncate">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <FileText size={18} />
+                </div>
+                <div className="truncate">
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white truncate">
+                    {previewDoc.title}
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    {previewDoc.name}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewDoc.url}
+                  download={previewDoc.name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download size={14} />
+                  <span>Baixar</span>
+                </a>
+                <button 
+                  onClick={() => setPreviewDoc(null)}
+                  className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="py-4 flex-1 overflow-auto flex items-center justify-center min-h-[300px]">
+              {previewDoc.url.startsWith('data:image/') || previewDoc.url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i) ? (
+                <img 
+                  src={previewDoc.url} 
+                  alt={previewDoc.name} 
+                  className="max-h-[60vh] max-w-full rounded-2xl object-contain shadow-md"
+                />
+              ) : previewDoc.url.startsWith('data:application/pdf') || previewDoc.url.match(/\.pdf($|\?)/i) ? (
+                <iframe 
+                  src={previewDoc.url} 
+                  title={previewDoc.name}
+                  className="w-full h-[60vh] rounded-2xl border border-zinc-200 dark:border-zinc-800"
+                />
+              ) : (
+                <div className="text-center p-8">
+                  <FileText size={48} className="mx-auto text-zinc-400 mb-3" />
+                  <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                    Pré-visualização do documento
+                  </p>
+                  <a
+                    href={previewDoc.url}
+                    download={previewDoc.name}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer"
+                  >
+                    <Download size={14} />
+                    <span>Baixar Arquivo</span>
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
