@@ -79,6 +79,8 @@ export const Expenses: React.FC = () => {
   const [manageModalInitialTab, setManageModalInitialTab] = useState<'companies' | 'types'>('companies');
   const [selectedExpense, setSelectedExpense] = useState<ExpenseRecord | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [replicateConfirmExpense, setReplicateConfirmExpense] = useState<ExpenseRecord | null>(null);
+  const [isReplicating, setIsReplicating] = useState(false);
 
   // Form Field States
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -513,32 +515,39 @@ export const Expenses: React.FC = () => {
     await loadAllData();
   };
 
-  const handleReplicate6Months = async (expense: ExpenseRecord) => {
+  const executeReplicate6Months = async (expense: ExpenseRecord) => {
     if (!expense.due_date || !expense.amount) return;
     const amountVal = Number(expense.amount || 0);
     const companyTitle = expense.company || expense.description || 'Despesa';
-    const confirmMsg = `Deseja replicar automaticamente a despesa "${companyTitle}" para os próximos 6 meses no valor de ${formatCurrency(amountVal)} cada?`;
-    if (!window.confirm(confirmMsg)) return;
 
-    const futureDates = calculateNextDueDates(expense.due_date, 6);
-    for (const futureDate of futureDates) {
-      await addExpense({
-        company: companyTitle,
-        description: companyTitle,
-        type: expense.type,
-        due_date: futureDate,
-        paid_date: undefined,
-        payment_method: undefined,
-        notes: expense.notes,
-        amount: amountVal,
-        paid_amount: 0,
-        status: 'pending',
-        bill_attachment: expense.bill_attachment,
-        bill_name: expense.bill_name
-      });
+    setIsReplicating(true);
+    try {
+      const futureDates = calculateNextDueDates(expense.due_date, 6);
+      for (const futureDate of futureDates) {
+        await addExpense({
+          company: companyTitle,
+          description: companyTitle,
+          type: expense.type,
+          due_date: futureDate,
+          paid_date: undefined,
+          payment_method: undefined,
+          notes: expense.notes,
+          amount: amountVal,
+          paid_amount: 0,
+          status: 'pending',
+          bill_attachment: expense.bill_attachment,
+          bill_name: expense.bill_name
+        });
+      }
+      setReplicateConfirmExpense(null);
+      setSelectedExpense(null);
+      await loadExpensesOnly();
+    } catch (err) {
+      console.error('Error replicating expense:', err);
+      alert('Ocorreu um erro ao gerar as contas futuras.');
+    } finally {
+      setIsReplicating(false);
     }
-    setSelectedExpense(null);
-    await loadExpensesOnly();
   };
 
   const handleDeleteExpense = async (id: number) => {
@@ -1612,9 +1621,8 @@ export const Expenses: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleReplicate6Months(selectedExpense)}
+                  onClick={() => setReplicateConfirmExpense(selectedExpense)}
                   className="adw-btn text-xs font-semibold flex items-center gap-1.5 cursor-pointer text-zinc-700 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10"
-                  title="Replicar esta despesa mensalmente para os próximos 6 meses"
                 >
                   <Repeat size={14} className="text-[#3584e4]" />
                   <span>Replicar (+6 meses)</span>
@@ -2367,6 +2375,86 @@ export const Expenses: React.FC = () => {
                   </a>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* REPLICATE 6 MONTHS CONFIRMATION DIALOG */}
+      {/* ========================================================================= */}
+      {replicateConfirmExpense && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div 
+            className="adw-dialog max-w-md w-full p-6 shadow-2xl animate-scaleIn text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-[#3584e4]/15 text-[#3584e4] flex items-center justify-center shrink-0">
+                <Repeat size={22} strokeWidth={2.3} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-bold text-zinc-900 dark:text-white">
+                  Repetir Conta por 6 Meses?
+                </h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                  Serão agendadas automaticamente 6 faturas mensais para esta despesa:
+                </p>
+                
+                <div className="my-3.5 p-3.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-500 dark:text-zinc-400 font-medium">Empresa / Conta:</span>
+                    <strong className="text-zinc-900 dark:text-white truncate max-w-[180px]">
+                      {replicateConfirmExpense.company || replicateConfirmExpense.description}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-500 dark:text-zinc-400 font-medium">Valor de cada fatura:</span>
+                    <strong className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                      {formatCurrency(Number(replicateConfirmExpense.amount || 0))}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria:</span>
+                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                      {replicateConfirmExpense.type}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mb-5 leading-relaxed">
+                  Os vencimentos serão lançados no mesmo dia dos próximos 6 meses com status pendente para você controlar facilmente.
+                </p>
+
+                <div className="flex gap-2.5 justify-end">
+                  <button 
+                    type="button"
+                    onClick={() => setReplicateConfirmExpense(null)}
+                    disabled={isReplicating}
+                    className="adw-btn py-2 px-4 text-xs font-semibold cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => executeReplicate6Months(replicateConfirmExpense)}
+                    disabled={isReplicating}
+                    className="adw-btn suggested-action py-2 px-4 text-xs font-semibold cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isReplicating ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Agendando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} strokeWidth={2.5} />
+                        <span>Confirmar e Agendar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
