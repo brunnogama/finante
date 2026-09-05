@@ -40,6 +40,7 @@ import {
   addCompany, 
   getIncomes,
   uploadExpenseAttachment,
+  cleanDuplicateExpenses,
   supabase, 
   type ExpenseRecord, 
   type CompanyRecord,
@@ -50,8 +51,11 @@ import { NegotiateExpensesModal } from '../components/NegotiateExpensesModal';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { DatePicker } from '../components/DatePicker';
 import { PortalDropdown } from '../components/PortalDropdown';
+import { SwipeableExpenseItem } from '../components/SwipeableExpenseItem';
+import { useDeviceType } from '../hooks/useDeviceType';
 
 export const Expenses: React.FC = () => {
+  const { isPhone } = useDeviceType();
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [incomes, setIncomes] = useState<IncomeRecord[]>([]);
   const [types, setTypes] = useState<string[]>([]);
@@ -179,6 +183,11 @@ export const Expenses: React.FC = () => {
 
   const loadAllData = async () => {
     setLoading(true);
+    try {
+      await cleanDuplicateExpenses();
+    } catch (e) {
+      console.warn('Auto deduplication info:', e);
+    }
     const [exp, inc, t, comp] = await Promise.all([
       getExpenses(),
       getIncomes(),
@@ -1253,160 +1262,186 @@ export const Expenses: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Table Container */}
-                  <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-zinc-200/70 dark:border-white/10 shadow-xs overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-zinc-200/70 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 bg-zinc-50/60 dark:bg-zinc-800/30">
-                            <th className="py-3 px-4 font-bold">Vencimento</th>
-                            <th className="py-3 px-4 font-bold">Empresa / Beneficiário</th>
-                            <th className="py-3 px-4 font-bold">Categoria</th>
-                            <th className="py-3 px-4 font-bold text-right">Valor</th>
-                            <th className="py-3 px-4 font-bold text-right">Pago</th>
-                            <th className="py-3 px-4 font-bold text-right">Saldo</th>
-                            <th className="py-3 px-4 font-bold text-center w-10"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-200/60 dark:divide-white/5 text-sm">
-                          {group.items.map((exp) => {
-                            const amount = Number(exp.amount || 0);
-                            const paid = Number(exp.paid_amount || 0);
-                            const balance = Math.max(0, amount - paid);
-                            const isPaid = balance <= 0 && amount > 0;
-                            const dueInfo = getDueDateStatus(exp.due_date, isPaid);
+                  {isPhone ? (
+                    /* Mobile Phone Card List with Swipe Actions */
+                    <div className="space-y-1">
+                      {group.items.map((exp) => {
+                        const amount = Number(exp.amount || 0);
+                        const paid = Number(exp.paid_amount || 0);
+                        const balance = Math.max(0, amount - paid);
+                        const isPaid = balance <= 0 && amount > 0;
+                        const dueInfo = getDueDateStatus(exp.due_date, isPaid);
 
-                            const due = exp.due_date ? exp.due_date.split('T')[0] : '';
-                            const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
-                            const isLate = pDate ? pDate > due : false;
-                            const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amount);
-                            const lateFee = (exp.late_fee !== undefined && Number(exp.late_fee) > 0)
-                              ? Number(exp.late_fee)
-                              : (isLateFee && paid > amount ? (paid - amount) : 0);
-                            const overpayment = !isLateFee && paid > amount ? (paid - amount) : 0;
-
-                            return (
-                              <tr
-                                key={exp.id}
-                                onClick={() => setSelectedExpense(exp)}
-                                className={`hover:bg-zinc-100/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors group select-none ${
-                                  selectedMonth === currentMonthKey && isOverdueFromPast(exp) ? 'bg-rose-500/[0.03] dark:bg-rose-500/[0.05]' : ''
-                                }`}
-                              >
-                                {/* Vencimento / Pagamento */}
-                                <td className="py-3.5 px-4 whitespace-nowrap">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs md:text-sm">
-                                      {formatDateBR(exp.due_date)}
-                                    </span>
-                                    {selectedMonth === currentMonthKey && isOverdueFromPast(exp) ? (
-                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-rose-700 dark:text-rose-400 bg-rose-500/15 border border-rose-500/30 flex items-center gap-1">
-                                        <AlertTriangle size={10} strokeWidth={2.5} />
-                                        Atrasada ({formatMonthShort(exp.due_date)})
-                                      </span>
-                                    ) : (
-                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dueInfo.color}`}>
-                                        {dueInfo.label}
-                                      </span>
-                                    )}
-                                    {paid === 0 && exp.late_fee && Number(exp.late_fee) > 0 && (
-                                      <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
-                                        +{formatCurrency(Number(exp.late_fee))} juros
-                                      </span>
-                                    )}
-                                  </div>
-                                {paid > 0 && exp.paid_date && (
-                                  <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex flex-wrap items-center gap-1.5">
-                                    <span>Pago em {formatDateBR(exp.paid_date)}</span>
-                                    {exp.payment_method && (
-                                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.2 rounded-md">
-                                        {exp.payment_method}
-                                      </span>
-                                    )}
-                                    {lateFee > 0 && (
-                                      <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
-                                        +{formatCurrency(lateFee)} Juros
-                                      </span>
-                                    )}
-                                    {overpayment > 0 && (
-                                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 px-1.5 py-0.2 rounded-md">
-                                        +{formatCurrency(overpayment)} a maior
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-
-                              {/* Empresa */}
-                              <td className="py-3.5 px-4">
-                                <div className="flex items-center gap-2.5 font-bold text-zinc-900 dark:text-white">
-                                  <CategoryIcon type={exp.type} size={15} />
-                                  <span className="truncate max-w-[180px] sm:max-w-none text-xs md:text-sm">
-                                    {exp.company || exp.description || 'Despesa'}
-                                  </span>
-                                </div>
-                              </td>
-
-                              {/* Categoria */}
-                              <td className="py-3.5 px-4 whitespace-nowrap">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/50 dark:border-zinc-700/50">
-                                  <Tag size={11} className="text-zinc-400" />
-                                  {exp.type}
-                                </span>
-                              </td>
-
-                              {/* Valor */}
-                              <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                                <span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-100 text-xs md:text-sm">
-                                  {formatCurrency(amount)}
-                                </span>
-                              </td>
-
-                              {/* Pago */}
-                              <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                                <span className={`font-semibold tabular-nums text-xs md:text-sm ${
-                                  paid > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'
-                                }`}>
-                                  {formatCurrency(paid)}
-                                </span>
-                                {lateFee > 0 && (
-                                  <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                                    +{formatCurrency(lateFee)} juros
-                                  </div>
-                                )}
-                                {overpayment > 0 && (
-                                  <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                                    +{formatCurrency(overpayment)} a maior
-                                  </div>
-                                )}
-                              </td>
-
-                              {/* Saldo */}
-                              <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                                {isPaid ? (
-                                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                    <Check size={12} strokeWidth={3} />
-                                    Quitada
-                                  </span>
-                                ) : (
-                                  <span className="font-bold tabular-nums text-rose-600 dark:text-rose-400 text-xs md:text-sm">
-                                    {formatCurrency(balance)}
-                                  </span>
-                                )}
-                              </td>
-
-                              {/* Chevron */}
-                              <td className="py-3.5 px-4 text-center">
-                                <ChevronRight size={15} className="text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-white transition-colors" />
-                              </td>
+                        return (
+                          <SwipeableExpenseItem
+                            key={exp.id}
+                            expense={exp}
+                            dueInfo={dueInfo}
+                            isOverduePast={selectedMonth === currentMonthKey && isOverdueFromPast(exp)}
+                            formatDateBR={formatDateBR}
+                            formatCurrency={formatCurrency}
+                            onSelect={(selected) => setSelectedExpense(selected)}
+                            onEdit={(toEdit) => handleOpenEditModal(toEdit)}
+                            onDelete={(toDelete) => setDeleteConfirmId(toDelete.id!)}
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* Tablet & Desktop Table Container */
+                    <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-md rounded-2xl border border-zinc-200/70 dark:border-white/10 shadow-xs overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="border-b border-zinc-200/70 dark:border-white/10 text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 bg-zinc-50/60 dark:bg-zinc-800/30">
+                              <th className="py-3 px-4 font-bold">Vencimento</th>
+                              <th className="py-3 px-4 font-bold">Empresa / Beneficiário</th>
+                              <th className="py-3 px-4 font-bold">Categoria</th>
+                              <th className="py-3 px-4 font-bold text-right">Valor</th>
+                              <th className="py-3 px-4 font-bold text-right">Pago</th>
+                              <th className="py-3 px-4 font-bold text-right">Saldo</th>
+                              <th className="py-3 px-4 font-bold text-center w-10"></th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-200/60 dark:divide-white/5 text-sm">
+                            {group.items.map((exp) => {
+                              const amount = Number(exp.amount || 0);
+                              const paid = Number(exp.paid_amount || 0);
+                              const balance = Math.max(0, amount - paid);
+                              const isPaid = balance <= 0 && amount > 0;
+                              const dueInfo = getDueDateStatus(exp.due_date, isPaid);
 
+                              const due = exp.due_date ? exp.due_date.split('T')[0] : '';
+                              const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
+                              const isLate = pDate ? pDate > due : false;
+                              const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amount);
+                              const lateFee = (exp.late_fee !== undefined && Number(exp.late_fee) > 0)
+                                ? Number(exp.late_fee)
+                                : (isLateFee && paid > amount ? (paid - amount) : 0);
+                              const overpayment = !isLateFee && paid > amount ? (paid - amount) : 0;
+
+                              return (
+                                <tr
+                                  key={exp.id}
+                                  onClick={() => setSelectedExpense(exp)}
+                                  className={`hover:bg-zinc-100/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors group select-none ${
+                                    selectedMonth === currentMonthKey && isOverdueFromPast(exp) ? 'bg-rose-500/[0.03] dark:bg-rose-500/[0.05]' : ''
+                                  }`}
+                                >
+                                  {/* Vencimento / Pagamento */}
+                                  <td className="py-3.5 px-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-xs md:text-sm">
+                                        {formatDateBR(exp.due_date)}
+                                      </span>
+                                      {selectedMonth === currentMonthKey && isOverdueFromPast(exp) ? (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-rose-700 dark:text-rose-400 bg-rose-500/15 border border-rose-500/30 flex items-center gap-1">
+                                          <AlertTriangle size={10} strokeWidth={2.5} />
+                                          Atrasada ({formatMonthShort(exp.due_date)})
+                                        </span>
+                                      ) : (
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dueInfo.color}`}>
+                                          {dueInfo.label}
+                                        </span>
+                                      )}
+                                      {paid === 0 && exp.late_fee && Number(exp.late_fee) > 0 && (
+                                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
+                                          +{formatCurrency(Number(exp.late_fee))} juros
+                                        </span>
+                                      )}
+                                    </div>
+                                  {paid > 0 && exp.paid_date && (
+                                    <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex flex-wrap items-center gap-1.5">
+                                      <span>Pago em {formatDateBR(exp.paid_date)}</span>
+                                      {exp.payment_method && (
+                                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.2 rounded-md">
+                                          {exp.payment_method}
+                                        </span>
+                                      )}
+                                      {lateFee > 0 && (
+                                        <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
+                                          +{formatCurrency(lateFee)} Juros
+                                        </span>
+                                      )}
+                                      {overpayment > 0 && (
+                                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 px-1.5 py-0.2 rounded-md">
+                                          +{formatCurrency(overpayment)} a maior
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Empresa */}
+                                <td className="py-3.5 px-4">
+                                  <div className="flex items-center gap-2.5 font-bold text-zinc-900 dark:text-white">
+                                    <CategoryIcon type={exp.type} size={15} />
+                                    <span className="truncate max-w-[180px] sm:max-w-none text-xs md:text-sm">
+                                      {exp.company || exp.description || 'Despesa'}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                {/* Categoria */}
+                                <td className="py-3.5 px-4 whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/50 dark:border-zinc-700/50">
+                                    <Tag size={11} className="text-zinc-400" />
+                                    {exp.type}
+                                  </span>
+                                </td>
+
+                                {/* Valor */}
+                                <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                                  <span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-100 text-xs md:text-sm">
+                                    {formatCurrency(amount)}
+                                  </span>
+                                </td>
+
+                                {/* Pago */}
+                                <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                                  <span className={`font-semibold tabular-nums text-xs md:text-sm ${
+                                    paid > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'
+                                  }`}>
+                                    {formatCurrency(paid)}
+                                  </span>
+                                  {lateFee > 0 && (
+                                    <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                                      +{formatCurrency(lateFee)} juros
+                                    </div>
+                                  )}
+                                  {overpayment > 0 && (
+                                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                                      +{formatCurrency(overpayment)} a maior
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* Saldo */}
+                                <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                                  {isPaid ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                      <Check size={12} strokeWidth={3} />
+                                      Quitada
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs md:text-sm font-bold tabular-nums text-rose-700 dark:text-rose-300 bg-rose-500/15 dark:bg-rose-500/25 border border-rose-500/40 shadow-xs">
+                                      {formatCurrency(balance)}
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Chevron */}
+                                <td className="py-3.5 px-4 text-center">
+                                  <ChevronRight size={15} className="text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-white transition-colors" />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

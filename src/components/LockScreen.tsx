@@ -79,7 +79,10 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
       const available = await biometricsService.isAvailable();
       setIsBiometricSupported(available);
       if (available) {
-        handleBiometricAuth();
+        // Small delay to ensure Android window is focused
+        setTimeout(() => {
+          handleBiometricAuth();
+        }, 350);
       }
     } catch {
       setIsBiometricSupported(false);

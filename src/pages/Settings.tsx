@@ -20,7 +20,9 @@ import {
   UserPlus,
   Download,
   Upload,
-  X
+  X,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { PinSetupModal } from '../components/PinSetupModal';
 import { ChangelogModal } from '../components/ChangelogModal';
@@ -35,7 +37,8 @@ import {
   signOutUser,
   syncLocalDataToCloud,
   exportAllDataToJson,
-  importDataFromJson
+  importDataFromJson,
+  resetAllAppData
 } from '../services/supabase';
 import { checkAppUpdate } from '../services/updater';
 import pkg from '../../package.json';
@@ -45,6 +48,9 @@ export const Settings: React.FC = () => {
   const [showChangelog, setShowChangelog] = useState(false);
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [isSignUpMode, setIsSignUpMode] = useState(false);
@@ -78,6 +84,8 @@ export const Settings: React.FC = () => {
       if (e.key === 'Escape') {
         if (showAuthModal) {
           setShowAuthModal(false);
+        } else if (showResetConfirmModal) {
+          setShowResetConfirmModal(false);
         } else if (showPinModal) {
           setShowPinModal(false);
         } else if (showChangelog) {
@@ -89,7 +97,29 @@ export const Settings: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAuthModal, showPinModal, showChangelog, showCategoriesModal]);
+  }, [showAuthModal, showResetConfirmModal, showPinModal, showChangelog, showCategoriesModal]);
+
+  const handleConfirmReset = async () => {
+    setIsResetting(true);
+    setResetFeedback(null);
+    try {
+      const res = await resetAllAppData();
+      setResetFeedback(res);
+      if (res.success) {
+        setTimeout(() => {
+          setShowResetConfirmModal(false);
+          window.location.reload();
+        }, 1200);
+      }
+    } catch (err: any) {
+      setResetFeedback({
+        success: false,
+        message: `Erro ao resetar: ${err.message || err}`
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const handleGoogleConnect = async () => {
     setIsSigningIn(true);
@@ -533,6 +563,30 @@ export const Settings: React.FC = () => {
         </a>
       </AdwPreferencesGroup>
 
+      {/* Section 4: Zona de Perigo */}
+      <AdwPreferencesGroup title="Zona de Perigo">
+        <AdwActionRow
+          title="Resetar Todos os Dados do Aplicativo"
+          subtitle="Apaga todas as despesas, receitas, categorias e restaura o Finante para o estado inicial"
+          prefix={
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <Trash2 size={18} strokeWidth={2.2} />
+            </div>
+          }
+          suffix={
+            <button
+              type="button"
+              onClick={() => { setResetFeedback(null); setShowResetConfirmModal(true); }}
+              className="adw-btn text-xs font-semibold px-3 py-1.5 cursor-pointer inline-flex items-center gap-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20"
+            >
+              <Trash2 size={13} />
+              <span>Resetar Dados</span>
+            </button>
+          }
+          onClick={() => { setResetFeedback(null); setShowResetConfirmModal(true); }}
+        />
+      </AdwPreferencesGroup>
+
       {/* Modals */}
       {showPinModal && <PinSetupModal onClose={() => setShowPinModal(false)} />}
       {showChangelog && <ChangelogModal currentVersion={pkg.version} onClose={() => setShowChangelog(false)} />}
@@ -657,6 +711,89 @@ export const Settings: React.FC = () => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Reset Geral */}
+      {showResetConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div 
+            className="adw-dialog max-w-sm w-full p-6 shadow-2xl animate-scaleIn text-left border border-rose-500/30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <AlertTriangle size={22} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                  Resetar Todos os Dados
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Esta ação é irreversível
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-5 text-xs text-zinc-600 dark:text-zinc-300">
+              <p>
+                Tem certeza de que deseja apagar todos os registros do aplicativo?
+              </p>
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 space-y-1">
+                <p className="font-bold">O que será apagado:</p>
+                <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                  <li>Todas as despesas e receitas cadastradas</li>
+                  <li>Categorias e empresas personalizadas</li>
+                  <li>Dados locais e na nuvem (Supabase)</li>
+                  <li>Configurações de cache e sincronização</li>
+                </ul>
+              </div>
+            </div>
+
+            {resetFeedback && (
+              <div className={`p-3 rounded-xl text-xs font-semibold mb-4 flex items-center gap-2 ${
+                resetFeedback.success
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+              }`}>
+                {resetFeedback.success ? (
+                  <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertTriangle size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                )}
+                <span>{resetFeedback.message}</span>
+              </div>
+            )}
+
+            <div className="flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowResetConfirmModal(false)}
+                disabled={isResetting}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-white/10 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReset}
+                disabled={isResetting}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {isResetting ? (
+                  <>
+                    <RefreshCw size={13} className="animate-spin" />
+                    <span>Apagando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={13} />
+                    <span>Confirmar Reset</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

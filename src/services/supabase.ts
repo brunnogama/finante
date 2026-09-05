@@ -194,7 +194,30 @@ export const getExpenses = async (): Promise<ExpenseRecord[]> => {
       // Preserve any offline-created items that haven't synced yet (id > 1000000000)
       const remoteIds = new Set(normalized.map(e => e.id));
       const unsyncedLocal = localList.filter(l => l.id && !remoteIds.has(l.id) && l.id > 1000000000);
-      const combined = [...normalized, ...unsyncedLocal].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
+
+      // Filter out any unsyncedLocal that matches an existing remote item by content
+      const deduplicatedUnsynced = unsyncedLocal.filter(local => {
+        const isDuplicateOfRemote = normalized.some(rem => 
+          (rem.company || rem.description || '').trim().toLowerCase() === (local.company || local.description || '').trim().toLowerCase() &&
+          (rem.due_date ? rem.due_date.split('T')[0] : '') === (local.due_date ? local.due_date.split('T')[0] : '') &&
+          Number(rem.amount || 0) === Number(local.amount || 0) &&
+          (rem.type || '').trim().toLowerCase() === (local.type || '').trim().toLowerCase()
+        );
+        return !isDuplicateOfRemote;
+      });
+
+      // Also clean up any exact duplicate records that might have been inserted into Supabase
+      const seenKeys = new Set<string>();
+      const deduplicatedNormalized: ExpenseRecord[] = [];
+      for (const item of normalized) {
+        const key = `${(item.company || item.description || '').trim().toLowerCase()}:::${item.due_date?.split('T')[0]}:::${Number(item.amount || 0)}:::${(item.type || '').trim().toLowerCase()}:::${item.paid_amount || 0}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          deduplicatedNormalized.push(item);
+        }
+      }
+
+      const combined = [...deduplicatedNormalized, ...deduplicatedUnsynced].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
 
       localStorage.setItem('finante_local_expenses', JSON.stringify(combined));
       return combined;
@@ -1409,8 +1432,11 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
       const { data, error } = await supabase.from('expenses').insert([payload]).select();
       if (!error && data?.[0]) {
         expensesSynced++;
-        // Atualizar o ID no local com o ID definitivo do banco
+        // Atualizar o ID no local com o ID definitivo do banco para não duplicar
         saveEnrichment(data[0].id, payload);
+        const currentLoc = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+        const updatedLoc = currentLoc.map((item: any) => item.id === exp.id ? { ...item, ...data[0], id: data[0].id } : item);
+        localStorage.setItem('finante_local_expenses', JSON.stringify(updatedLoc));
       }
     } catch (e) {
       console.warn('Erro ao sincronizar despesa:', e);
@@ -1432,6 +1458,9 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
       const { data, error } = await supabase.from('incomes').insert([payload]).select();
       if (!error && data?.[0]) {
         incomesSynced++;
+        const currentLoc = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
+        const updatedLoc = currentLoc.map((item: any) => item.id === inc.id ? { ...item, ...data[0], id: data[0].id } : item);
+        localStorage.setItem('finante_local_incomes', JSON.stringify(updatedLoc));
       }
     } catch (e) {
       console.warn('Erro ao sincronizar receita:', e);
@@ -1455,6 +1484,9 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
       const { data, error } = await supabase.from('investments').insert([payload]).select();
       if (!error && data?.[0]) {
         investmentsSynced++;
+        const currentLoc = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
+        const updatedLoc = currentLoc.map((item: any) => item.id === inv.id ? { ...item, ...data[0], id: data[0].id } : item);
+        localStorage.setItem('finante_local_investments', JSON.stringify(updatedLoc));
       }
     } catch (e) {
       console.warn('Erro ao sincronizar investimento:', e);
@@ -1544,6 +1576,100 @@ export const importDataFromJson = async (jsonString: string): Promise<{ success:
     };
   } catch (err: any) {
     return { success: false, message: err.message || 'Falha ao importar arquivo de dados.' };
+  }
+};
+
+export const cleanDuplicateExpenses = async (): Promise<number> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
+    let query = supabase.from('expenses').select('*');
+    if (userId) {
+      query = query.or(`user_id.eq.${userId},user_id.is.null`);
+    }
+    const { data, error } = await query;
+    if (error || !data) return 0;
+
+    const seen = new Map<string, any>();
+    const duplicateIds: number[] = [];
+
+    for (const exp of data) {
+      const company = (exp.company || exp.description || '').trim().toLowerCase();
+      const dueDate = exp.due_date ? exp.due_date.split('T')[0] : '';
+      const amount = Number(exp.amount || 0);
+      const type = (exp.type || '').trim().toLowerCase();
+      const key = `${company}:::${dueDate}:::${amount}:::${type}`;
+
+      if (seen.has(key)) {
+        duplicateIds.push(exp.id);
+      } else {
+        seen.set(key, exp);
+      }
+    }
+
+    if (duplicateIds.length > 0) {
+      await supabase.from('expenses').delete().in('id', duplicateIds);
+      const local = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
+      const dupSet = new Set(duplicateIds);
+      const cleaned = local.filter((e: any) => !dupSet.has(e.id));
+      localStorage.setItem('finante_local_expenses', JSON.stringify(cleaned));
+      window.dispatchEvent(new CustomEvent('finante_data_updated'));
+    }
+
+    return duplicateIds.length;
+  } catch (err) {
+    console.warn('Erro ao limpar duplicatas de despesas:', err);
+    return 0;
+  }
+};
+
+export const resetAllAppData = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+
+    if (userId) {
+      await Promise.allSettled([
+        supabase.from('expenses').delete().eq('user_id', userId),
+        supabase.from('incomes').delete().eq('user_id', userId),
+        supabase.from('investments').delete().eq('user_id', userId),
+        supabase.from('companies').delete().eq('user_id', userId),
+        supabase.from('expense_types').delete().eq('user_id', userId),
+      ]);
+    } else {
+      await Promise.allSettled([
+        supabase.from('expenses').delete().is('user_id', null),
+        supabase.from('incomes').delete().is('user_id', null),
+        supabase.from('investments').delete().is('user_id', null),
+        supabase.from('companies').delete().is('user_id', null),
+        supabase.from('expense_types').delete().is('user_id', null),
+      ]);
+    }
+
+    // Limpar todos os storages locais do Finante
+    localStorage.removeItem('finante_local_expenses');
+    localStorage.removeItem('finante_local_incomes');
+    localStorage.removeItem('finante_local_investments');
+    localStorage.removeItem('finante_expense_enrichments');
+    localStorage.removeItem('finante_deleted_companies');
+    localStorage.removeItem('finante_deleted_expense_types');
+    localStorage.removeItem('finante_category_styles');
+    localStorage.removeItem('finante_backup');
+
+    // Restaurar padrões
+    localStorage.setItem('finante_companies', JSON.stringify(DEFAULT_COMPANIES));
+    localStorage.setItem('finante_expense_types', JSON.stringify(DEFAULT_EXPENSE_TYPES));
+
+    // Notificar todas as páginas
+    window.dispatchEvent(new CustomEvent('finante_data_reset'));
+    window.dispatchEvent(new CustomEvent('finante_data_updated'));
+    window.dispatchEvent(new CustomEvent('finante_category_styles_updated'));
+
+    return { success: true, message: 'Todos os dados foram resetados com sucesso!' };
+  } catch (err: any) {
+    console.error('Erro ao resetar dados:', err);
+    return { success: false, message: err?.message || 'Erro ao resetar dados.' };
   }
 };
 
