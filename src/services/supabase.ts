@@ -824,6 +824,43 @@ export const deleteInvestment = async (id: number) => {
    AUTH SERVICES (Google OAuth, Email & Session)
 ========================================================= */
 
+export const setSessionFromUrl = async (urlOrHash: string) => {
+  const text = urlOrHash.trim();
+  if (!text) throw new Error('Cole o link completo da barra de endereços do navegador.');
+
+  let paramString = text;
+  if (text.includes('#')) {
+    paramString = text.split('#')[1];
+  } else if (text.includes('?')) {
+    paramString = text.split('?')[1];
+  }
+
+  const params = new URLSearchParams(paramString);
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  const code = params.get('code');
+  const error = params.get('error_description') || params.get('error');
+
+  if (error) {
+    throw new Error(`Erro na autenticação: ${decodeURIComponent(error)}`);
+  }
+
+  if (accessToken && refreshToken) {
+    const { data, error: sessionErr } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    if (sessionErr) throw sessionErr;
+    return data;
+  } else if (code) {
+    const { data, error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
+    if (codeErr) throw codeErr;
+    return data;
+  }
+
+  throw new Error('Não foi possível identificar as credenciais de acesso no link informado. Certifique-se de copiar todo o link da barra de endereços.');
+};
+
 export const signInWithGoogle = async () => {
   const isDesktopTauri = typeof window !== 'undefined' && (isTauri() || '__TAURI_INTERNALS__' in window);
 
@@ -835,7 +872,7 @@ export const signInWithGoogle = async () => {
       // 2. Preparar promessa para receber os tokens do callback OAuth
       const oauthPromise = new Promise<{ access_token?: string; refresh_token?: string; code?: string; error?: string }>((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error('Tempo limite para login com Google excedido. Tente novamente.'));
+          reject(new Error('Tempo limite para login com Google excedido. Caso o navegador tenha aberto, copie o link gerado e cole no aplicativo.'));
         }, 120000);
 
         once('oauth-callback', (event: any) => {

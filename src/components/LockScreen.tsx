@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Lock, Fingerprint, Delete, CheckCircle2, Shield, LogOut, RefreshCw, Mail, KeyRound, ArrowLeft, UserPlus, LogIn } from 'lucide-react';
+import { Lock, Fingerprint, Delete, CheckCircle2, Shield, LogOut, RefreshCw, Mail, KeyRound, ArrowLeft, UserPlus, LogIn, Link2 } from 'lucide-react';
 import { WindowControls } from './WindowControls';
 import { FinanteIcon } from './FinanteIcon';
 import { biometricsService } from '../services/biometrics';
-import { supabase, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser } from '../services/supabase';
+import { supabase, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser, setSessionFromUrl } from '../services/supabase';
 
 interface LockScreenProps {
   onUnlocked: () => void;
@@ -11,10 +11,12 @@ interface LockScreenProps {
 
 export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
   const [step, setStep] = useState<'welcome' | 'create' | 'confirm' | 'unlock' | 'success'>('unlock');
-  const [authMode, setAuthMode] = useState<'options' | 'email_login' | 'email_signup'>('options');
+  const [authMode, setAuthMode] = useState<'options' | 'email_login' | 'email_signup' | 'paste_url'>('options');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [pastedUrl, setPastedUrl] = useState('');
   const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [isPasting, setIsPasting] = useState(false);
   const [emailSuccessMsg, setEmailSuccessMsg] = useState<string | null>(null);
   const [pinInput, setPinInput] = useState('');
   const [createdPin, setCreatedPin] = useState('');
@@ -104,6 +106,28 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
       setErrorMsg(err.message || 'Não foi possível conectar ao Google.');
     } finally {
       setIsSigningIn(false);
+    }
+  };
+
+  const handlePasteUrlAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pastedUrl.trim()) {
+      setErrorMsg('Cole o link da barra de endereços do navegador.');
+      return;
+    }
+
+    setIsPasting(true);
+    setErrorMsg(null);
+    try {
+      const data = await setSessionFromUrl(pastedUrl);
+      if (data?.user) {
+        setUser(data.user);
+      }
+    } catch (err: any) {
+      console.error('Paste URL Error:', err);
+      setErrorMsg(err.message || 'Link inválido ou expirado.');
+    } finally {
+      setIsPasting(false);
     }
   };
 
@@ -288,7 +312,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                 {isSigningIn ? (
                   <>
                     <RefreshCw size={18} className="animate-spin text-zinc-600" />
-                    <span>Conectando ao Google...</span>
+                    <span>Aguardando navegador...</span>
                   </>
                 ) : (
                   <>
@@ -303,6 +327,23 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                 )}
               </button>
 
+              {/* Informative helper when Google OAuth is running */}
+              {isSigningIn && (
+                <div className="bg-[#3584e4]/10 border border-[#3584e4]/30 rounded-xl p-3 text-left animate-fadeIn">
+                  <p className="text-xs text-blue-300 font-medium mb-2 leading-relaxed">
+                    A janela do navegador foi aberta. Faça login com sua conta Google.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('paste_url'); setErrorMsg(null); }}
+                    className="text-[11px] font-bold text-[#3584e4] hover:text-blue-300 flex items-center gap-1.5 cursor-pointer underline"
+                  >
+                    <Link2 size={13} />
+                    <span>Navegador deu erro no tauri.localhost? Cole o link aqui</span>
+                  </button>
+                </div>
+              )}
+
               {/* Email Login Button */}
               <button
                 type="button"
@@ -313,8 +354,18 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                 <span>Entrar com E-mail e Senha</span>
               </button>
 
+              {/* Paste URL Button */}
+              <button
+                type="button"
+                onClick={() => { setAuthMode('paste_url'); setErrorMsg(null); setEmailSuccessMsg(null); }}
+                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-5 rounded-2xl bg-transparent hover:bg-white/[0.05] text-zinc-400 hover:text-zinc-200 font-medium text-xs border border-dashed border-white/15 transition-all cursor-pointer"
+              >
+                <Link2 size={15} />
+                <span>Colar link de login do navegador</span>
+              </button>
+
               {/* Local Mode / Offline Option */}
-              <div className="pt-3">
+              <div className="pt-2">
                 <button
                   type="button"
                   onClick={handleSkipAuth}
@@ -324,6 +375,53 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
                 </button>
               </div>
             </div>
+          ) : authMode === 'paste_url' ? (
+            /* Paste URL Form */
+            <form onSubmit={handlePasteUrlAuth} className="w-full space-y-3.5 animate-fadeIn text-left">
+              <div className="flex items-center justify-between mb-1">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('options'); setErrorMsg(null); setEmailSuccessMsg(null); }}
+                  className="text-xs font-semibold text-zinc-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Voltar</span>
+                </button>
+                <span className="text-xs font-bold text-zinc-400">
+                  Colar Link de Autenticação
+                </span>
+              </div>
+
+              <p className="text-[11px] text-zinc-400 leading-relaxed">
+                Copie o endereço completo da barra do navegador (que começa com <code>http://tauri.localhost/#access_token=...</code>) e cole abaixo:
+              </p>
+
+              <div>
+                <textarea
+                  value={pastedUrl}
+                  onChange={(e) => setPastedUrl(e.target.value)}
+                  placeholder="http://tauri.localhost/#access_token=..."
+                  rows={3}
+                  required
+                  className="w-full p-3 rounded-xl bg-white/[0.07] border border-white/10 text-white placeholder:text-zinc-600 text-xs font-mono focus:outline-none focus:border-[#3584e4] transition-colors resize-none break-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isPasting}
+                className="w-full py-3 px-4 rounded-xl bg-[#3584e4] hover:bg-[#2b71c7] text-white font-bold text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {isPasting ? (
+                  <RefreshCw size={15} className="animate-spin" />
+                ) : (
+                  <>
+                    <CheckCircle2 size={15} />
+                    <span>Conectar e Validar Acesso</span>
+                  </>
+                )}
+              </button>
+            </form>
           ) : (
             /* Email & Password Form */
             <form onSubmit={handleEmailAuth} className="w-full space-y-3.5 animate-fadeIn text-left">
