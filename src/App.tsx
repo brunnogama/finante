@@ -12,6 +12,7 @@ import { LockScreen } from './components/LockScreen';
 import { notificationListenerService } from './services/notifications';
 
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 function App() {
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -32,12 +33,14 @@ function App() {
     const listener = () => applyTheme();
     mediaQuery.addEventListener('change', listener);
 
-    // Capacitor background lock
-    CapacitorApp.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
-      if (!isActive) {
-        setIsUnlocked(false);
-      }
-    });
+    // Capacitor background lock (mobile only)
+    if (Capacitor.isNativePlatform()) {
+      CapacitorApp.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
+        if (!isActive) {
+          setIsUnlocked(false);
+        }
+      });
+    }
 
     return () => {
       mediaQuery.removeEventListener('change', listener);

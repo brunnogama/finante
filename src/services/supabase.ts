@@ -2,10 +2,19 @@ import { createClient } from '@supabase/supabase-js';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { once } from '@tauri-apps/api/event';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const FALLBACK_SUPABASE_URL = 'https://jxnjbqtwbvpivlwxfcxz.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bmpicXR3YnZwaXZsd3hmY3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMDQxNjIsImV4cCI6MjEwMTg4MDE2Mn0.b7twbYa27qPffvcPDROjUeMdY2FnkOdRihKrVhy_dGk';
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false
+  }
+});
 
 export interface ExpenseRecord {
   id?: number;

@@ -41,6 +41,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://jxnjbqtwbvpivlwxfcxz.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bmpicXR3YnZwaXZsd3hmY3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzMDQxNjIsImV4cCI6MjEwMTg4MDE2Mn0.b7twbYa27qPffvcPDROjUeMdY2FnkOdRihKrVhy_dGk' }}
         with:
           tagName: v__VERSION__
           releaseName: 'Finante v__VERSION__'
