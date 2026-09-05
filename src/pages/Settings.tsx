@@ -254,13 +254,14 @@ export const Settings: React.FC = () => {
 
   const handleForceSync = async () => {
     setIsSyncing(true);
-    setSyncStatus('Sincronizando dados locais com o Supabase...');
+    setSyncStatus('Sincronizando com a nuvem Supabase...');
     try {
       if (user) {
         const result = await syncLocalDataToCloud();
-        setSyncStatus(`Sincronização concluída! (${result.expensesSynced} despesas, ${result.incomesSynced} receitas sincronizadas)`);
+        setSyncStatus(`Sincronização concluída! (${result.expensesTotal} despesas, ${result.incomesTotal} receitas sincronizadas)`);
+        window.dispatchEvent(new CustomEvent('finante_data_updated'));
       } else {
-        setSyncStatus('Você está no modo local. Conecte sua conta Google ou e-mail para sincronizar na nuvem.');
+        setSyncStatus('Você está no modo local. Faça login para sincronizar dados com a nuvem.');
       }
       setTimeout(() => setSyncStatus(null), 5000);
     } catch (err: any) {

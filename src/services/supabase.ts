@@ -1392,7 +1392,14 @@ export const negotiateExpenses = async (data: NegotiationData): Promise<ExpenseR
    CLOUD SYNCHRONIZATION & BACKUP / RESTORE
 ========================================================= */
 
-export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; incomesSynced: number; investmentsSynced: number }> => {
+export const syncLocalDataToCloud = async (): Promise<{ 
+  expensesSynced: number; 
+  expensesTotal: number;
+  incomesSynced: number; 
+  incomesTotal: number;
+  investmentsSynced: number; 
+  investmentsTotal: number;
+}> => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) {
     throw new Error('Você precisa estar conectado à sua conta para sincronizar dados com a nuvem.');
@@ -1402,9 +1409,24 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
   let incomesSynced = 0;
   let investmentsSynced = 0;
 
-  // 1. Sincronizar despesas criadas offline (identificadas por ID temporário gerado localmente > 1000000000)
+  // 1. Sincronizar despesas
   const localExpenses: ExpenseRecord[] = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
-  const unsyncedExpenses = localExpenses.filter(e => e.id && e.id > 1000000000);
+  const { data: remoteExpensesData } = await supabase.from('expenses').select('*');
+  const remoteExpenses = remoteExpensesData || [];
+  const remoteExpenseIds = new Set(remoteExpenses.map(r => r.id));
+
+  const unsyncedExpenses = localExpenses.filter(local => {
+    if (!local.id || !remoteExpenseIds.has(local.id)) {
+      const isDuplicateOfRemote = remoteExpenses.some(rem => 
+        (rem.company || rem.description || '').trim().toLowerCase() === (local.company || local.description || '').trim().toLowerCase() &&
+        (rem.due_date ? rem.due_date.split('T')[0] : '') === (local.due_date ? local.due_date.split('T')[0] : '') &&
+        Number(rem.amount || 0) === Number(local.amount || 0) &&
+        (rem.type || '').trim().toLowerCase() === (local.type || '').trim().toLowerCase()
+      );
+      return !isDuplicateOfRemote;
+    }
+    return false;
+  });
 
   for (const exp of unsyncedExpenses) {
     try {
@@ -1432,7 +1454,6 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
       const { data, error } = await supabase.from('expenses').insert([payload]).select();
       if (!error && data?.[0]) {
         expensesSynced++;
-        // Atualizar o ID no local com o ID definitivo do banco para não duplicar
         saveEnrichment(data[0].id, payload);
         const currentLoc = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
         const updatedLoc = currentLoc.map((item: any) => item.id === exp.id ? { ...item, ...data[0], id: data[0].id } : item);
@@ -1445,7 +1466,21 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
 
   // 2. Sincronizar receitas locais
   const localIncomes: IncomeRecord[] = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
-  const unsyncedIncomes = localIncomes.filter(i => i.id && i.id > 1000000000);
+  const { data: remoteIncomesData } = await supabase.from('incomes').select('*');
+  const remoteIncomes = remoteIncomesData || [];
+  const remoteIncomeIds = new Set(remoteIncomes.map(r => r.id));
+
+  const unsyncedIncomes = localIncomes.filter(local => {
+    if (!local.id || !remoteIncomeIds.has(local.id)) {
+      const isDuplicateOfRemote = remoteIncomes.some(rem =>
+        rem.source?.trim().toLowerCase() === local.source?.trim().toLowerCase() &&
+        (rem.date ? rem.date.split('T')[0] : '') === (local.date ? local.date.split('T')[0] : '') &&
+        Number(rem.amount || 0) === Number(local.amount || 0)
+      );
+      return !isDuplicateOfRemote;
+    }
+    return false;
+  });
 
   for (const inc of unsyncedIncomes) {
     try {
@@ -1469,7 +1504,21 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
 
   // 3. Sincronizar investimentos locais
   const localInvestments: InvestmentRecord[] = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
-  const unsyncedInvestments = localInvestments.filter(i => i.id && i.id > 1000000000);
+  const { data: remoteInvestmentsData } = await supabase.from('investments').select('*');
+  const remoteInvestments = remoteInvestmentsData || [];
+  const remoteInvestmentIds = new Set(remoteInvestments.map(r => r.id));
+
+  const unsyncedInvestments = localInvestments.filter(local => {
+    if (!local.id || !remoteInvestmentIds.has(local.id)) {
+      const isDuplicateOfRemote = remoteInvestments.some(rem =>
+        rem.asset?.trim().toLowerCase() === local.asset?.trim().toLowerCase() &&
+        (rem.date ? rem.date.split('T')[0] : '') === (local.date ? local.date.split('T')[0] : '') &&
+        Number(rem.amount || 0) === Number(local.amount || 0)
+      );
+      return !isDuplicateOfRemote;
+    }
+    return false;
+  });
 
   for (const inv of unsyncedInvestments) {
     try {
@@ -1493,12 +1542,34 @@ export const syncLocalDataToCloud = async (): Promise<{ expensesSynced: number; 
     }
   }
 
-  // Recarregar dados frescos da nuvem
-  await getExpenses();
-  await getIncomes();
-  await getInvestments();
+  // 4. Baixar todos os dados atualizados da nuvem para o armazenamento local
+  const freshExpenses = await getExpenses();
+  const freshIncomes = await getIncomes();
+  const freshInvestments = await getInvestments();
+  await getCompanies();
+  await getExpenseTypes();
 
-  return { expensesSynced, incomesSynced, investmentsSynced };
+  if (freshExpenses && freshExpenses.length > 0) {
+    localStorage.setItem('finante_local_expenses', JSON.stringify(freshExpenses));
+  }
+  if (freshIncomes && freshIncomes.length > 0) {
+    localStorage.setItem('finante_local_incomes', JSON.stringify(freshIncomes));
+  }
+  if (freshInvestments && freshInvestments.length > 0) {
+    localStorage.setItem('finante_local_investments', JSON.stringify(freshInvestments));
+  }
+
+  window.dispatchEvent(new CustomEvent('finante_data_updated'));
+  window.dispatchEvent(new CustomEvent('finante_category_styles_updated'));
+
+  return { 
+    expensesSynced, 
+    expensesTotal: freshExpenses.length,
+    incomesSynced, 
+    incomesTotal: freshIncomes.length,
+    investmentsSynced, 
+    investmentsTotal: freshInvestments.length 
+  };
 };
 
 export interface FinanteBackupData {
