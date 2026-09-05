@@ -28,7 +28,8 @@ import {
   Download,
   UploadCloud,
   Repeat,
-  Handshake
+  Handshake,
+  RefreshCw
 } from 'lucide-react';
 import { 
   getExpenses, 
@@ -41,6 +42,7 @@ import {
   getIncomes,
   uploadExpenseAttachment,
   cleanDuplicateExpenses,
+  syncLocalDataToCloud,
   supabase, 
   type ExpenseRecord, 
   type CompanyRecord,
@@ -87,6 +89,19 @@ export const Expenses: React.FC = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [replicateConfirmExpense, setReplicateConfirmExpense] = useState<ExpenseRecord | null>(null);
   const [isReplicating, setIsReplicating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncLocalDataToCloud();
+      await loadAllData();
+    } catch (err) {
+      console.warn('Sync error:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Form Field States
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -846,6 +861,17 @@ export const Expenses: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="adw-btn"
+            title="Sincronizar despesas com a nuvem"
+          >
+            <RefreshCw size={15} className={isSyncing ? 'animate-spin text-[#3584e4]' : ''} />
+            <span className="hidden sm:inline">{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsNegotiateModalOpen(true)}

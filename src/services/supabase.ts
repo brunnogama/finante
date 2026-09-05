@@ -1408,6 +1408,8 @@ export const syncLocalDataToCloud = async (): Promise<{
   let expensesSynced = 0;
   let incomesSynced = 0;
   let investmentsSynced = 0;
+  let companiesSynced = 0;
+  let typesSynced = 0;
 
   // 1. Sincronizar despesas
   const localExpenses: ExpenseRecord[] = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
@@ -1431,7 +1433,7 @@ export const syncLocalDataToCloud = async (): Promise<{
   for (const exp of unsyncedExpenses) {
     try {
       const company = exp.company?.trim() || exp.description?.trim() || 'Despesa';
-      const payload: any = {
+      const fullPayload: any = {
         description: company,
         company: company,
         amount: Number(exp.amount) || 0,
@@ -1451,12 +1453,49 @@ export const syncLocalDataToCloud = async (): Promise<{
         user_id: session.user.id
       };
 
-      const { data, error } = await supabase.from('expenses').insert([payload]).select();
-      if (!error && data?.[0]) {
+      let insertedExpense: any = null;
+
+      // Tentativa 1: Inserção completa com user_id
+      const res1 = await supabase.from('expenses').insert([fullPayload]).select();
+      if (!res1.error && res1.data?.[0]) {
+        insertedExpense = res1.data[0];
+      } else {
+        // Tentativa 2: Inserção completa sem user_id (se tabela não tiver coluna user_id)
+        const { user_id: _, ...fullWithoutUser } = fullPayload;
+        const res2 = await supabase.from('expenses').insert([fullWithoutUser]).select();
+        if (!res2.error && res2.data?.[0]) {
+          insertedExpense = res2.data[0];
+        } else {
+          // Tentativa 3: Inserção padrão com user_id
+          const standardPayload: any = {
+            description: company,
+            amount: Number(exp.amount) || 0,
+            due_date: exp.due_date,
+            type: exp.type || 'Outros',
+            status: exp.status || 'pending',
+            user_id: session.user.id
+          };
+          const res3 = await supabase.from('expenses').insert([standardPayload]).select();
+          if (!res3.error && res3.data?.[0]) {
+            insertedExpense = res3.data[0];
+          } else {
+            // Tentativa 4: Inserção padrão mínima sem user_id
+            const { user_id: __, ...stdWithoutUser } = standardPayload;
+            const res4 = await supabase.from('expenses').insert([stdWithoutUser]).select();
+            if (!res4.error && res4.data?.[0]) {
+              insertedExpense = res4.data[0];
+            } else {
+              console.error('Falha em todas as tentativas de upload da despesa:', exp.company, res1.error, res2.error, res3.error, res4.error);
+            }
+          }
+        }
+      }
+
+      if (insertedExpense) {
         expensesSynced++;
-        saveEnrichment(data[0].id, payload);
+        saveEnrichment(insertedExpense.id, fullPayload);
         const currentLoc = JSON.parse(localStorage.getItem('finante_local_expenses') || '[]');
-        const updatedLoc = currentLoc.map((item: any) => item.id === exp.id ? { ...item, ...data[0], id: data[0].id } : item);
+        const updatedLoc = currentLoc.map((item: any) => item.id === exp.id ? { ...item, ...insertedExpense, id: insertedExpense.id } : item);
         localStorage.setItem('finante_local_expenses', JSON.stringify(updatedLoc));
       }
     } catch (e) {
@@ -1490,11 +1529,23 @@ export const syncLocalDataToCloud = async (): Promise<{
         date: inc.date,
         user_id: session.user.id
       };
-      const { data, error } = await supabase.from('incomes').insert([payload]).select();
-      if (!error && data?.[0]) {
+
+      let insertedIncome: any = null;
+      const res1 = await supabase.from('incomes').insert([payload]).select();
+      if (!res1.error && res1.data?.[0]) {
+        insertedIncome = res1.data[0];
+      } else {
+        const { user_id: _, ...payloadNoUser } = payload;
+        const res2 = await supabase.from('incomes').insert([payloadNoUser]).select();
+        if (!res2.error && res2.data?.[0]) {
+          insertedIncome = res2.data[0];
+        }
+      }
+
+      if (insertedIncome) {
         incomesSynced++;
         const currentLoc = JSON.parse(localStorage.getItem('finante_local_incomes') || '[]');
-        const updatedLoc = currentLoc.map((item: any) => item.id === inc.id ? { ...item, ...data[0], id: data[0].id } : item);
+        const updatedLoc = currentLoc.map((item: any) => item.id === inc.id ? { ...item, ...insertedIncome, id: insertedIncome.id } : item);
         localStorage.setItem('finante_local_incomes', JSON.stringify(updatedLoc));
       }
     } catch (e) {
@@ -1530,11 +1581,29 @@ export const syncLocalDataToCloud = async (): Promise<{
         notes: inv.notes || '',
         user_id: session.user.id
       };
-      const { data, error } = await supabase.from('investments').insert([payload]).select();
-      if (!error && data?.[0]) {
+
+      let insertedInv: any = null;
+      const res1 = await supabase.from('investments').insert([payload]).select();
+      if (!res1.error && res1.data?.[0]) {
+        insertedInv = res1.data[0];
+      } else {
+        const { user_id: _, ...payloadNoUser } = payload;
+        const res2 = await supabase.from('investments').insert([payloadNoUser]).select();
+        if (!res2.error && res2.data?.[0]) {
+          insertedInv = res2.data[0];
+        } else {
+          const minimalInv = { asset: inv.asset, category: inv.category || 'Renda Fixa', amount: Number(inv.amount) || 0, date: inv.date };
+          const res3 = await supabase.from('investments').insert([minimalInv]).select();
+          if (!res3.error && res3.data?.[0]) {
+            insertedInv = res3.data[0];
+          }
+        }
+      }
+
+      if (insertedInv) {
         investmentsSynced++;
         const currentLoc = JSON.parse(localStorage.getItem('finante_local_investments') || '[]');
-        const updatedLoc = currentLoc.map((item: any) => item.id === inv.id ? { ...item, ...data[0], id: data[0].id } : item);
+        const updatedLoc = currentLoc.map((item: any) => item.id === inv.id ? { ...item, ...insertedInv, id: insertedInv.id } : item);
         localStorage.setItem('finante_local_investments', JSON.stringify(updatedLoc));
       }
     } catch (e) {
@@ -1542,7 +1611,43 @@ export const syncLocalDataToCloud = async (): Promise<{
     }
   }
 
-  // 4. Baixar todos os dados atualizados da nuvem para o armazenamento local
+  // 4. Sincronizar categorias e fornecedores locais com a nuvem
+  try {
+    const localTypes: string[] = JSON.parse(localStorage.getItem('finante_expense_types') || '[]');
+    const { data: remoteTypesData } = await supabase.from('expense_types').select('name');
+    const remoteTypeNames = new Set((remoteTypesData || []).map((t: any) => (t.name || '').trim().toLowerCase()));
+    for (const tName of localTypes) {
+      if (tName && !remoteTypeNames.has(tName.trim().toLowerCase())) {
+        const { error } = await supabase.from('expense_types').insert([{ name: tName.trim(), user_id: session.user.id }]);
+        if (error) {
+          await supabase.from('expense_types').insert([{ name: tName.trim() }]);
+        }
+        typesSynced++;
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao sincronizar categorias:', e);
+  }
+
+  try {
+    const localCompanies: CompanyRecord[] = JSON.parse(localStorage.getItem('finante_companies') || '[]');
+    const { data: remoteCompaniesData } = await supabase.from('companies').select('name, default_type');
+    const remoteCompanyKeys = new Set((remoteCompaniesData || []).map((c: any) => `${(c.name || '').trim().toLowerCase()}:::${(c.default_type || '').trim().toLowerCase()}`));
+    for (const comp of localCompanies) {
+      const key = `${comp.name.trim().toLowerCase()}:::${(comp.default_type || 'Outros').trim().toLowerCase()}`;
+      if (!remoteCompanyKeys.has(key)) {
+        const { error } = await supabase.from('companies').insert([{ name: comp.name.trim(), default_type: comp.default_type || 'Outros', user_id: session.user.id }]);
+        if (error) {
+          await supabase.from('companies').insert([{ name: comp.name.trim(), default_type: comp.default_type || 'Outros' }]);
+        }
+        companiesSynced++;
+      }
+    }
+  } catch (e) {
+    console.warn('Erro ao sincronizar empresas:', e);
+  }
+
+  // 5. Baixar todos os dados atualizados da nuvem para o armazenamento local
   const freshExpenses = await getExpenses();
   const freshIncomes = await getIncomes();
   const freshInvestments = await getInvestments();

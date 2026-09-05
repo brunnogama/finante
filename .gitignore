@@ -36,6 +36,7 @@ finante.key.pub
 
 # Android
 *.apk
+*.idsig
 
 # Linux
 *.rpm

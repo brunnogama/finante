@@ -162,6 +162,13 @@ export const Settings: React.FC = () => {
         if (data?.user) {
           setUser(data.user);
           setShowAuthModal(false);
+          // Upload any local records immediately to Supabase
+          syncLocalDataToCloud()
+            .then(res => {
+              setSyncStatus(`Sincronização concluída! (${res.expensesSynced} despesas enviadas para nuvem)`);
+              setTimeout(() => setSyncStatus(null), 5000);
+            })
+            .catch(err => console.warn('Sync post-login err:', err));
         }
       }
     } catch (err: any) {
@@ -258,15 +265,16 @@ export const Settings: React.FC = () => {
     try {
       if (user) {
         const result = await syncLocalDataToCloud();
-        setSyncStatus(`Sincronização concluída! (${result.expensesTotal} despesas, ${result.incomesTotal} receitas sincronizadas)`);
+        setSyncStatus(`Sincronização concluída! (${result.expensesSynced} enviadas, total de ${result.expensesTotal} despesas na nuvem)`);
         window.dispatchEvent(new CustomEvent('finante_data_updated'));
       } else {
-        setSyncStatus('Você está no modo local. Faça login para sincronizar dados com a nuvem.');
+        setSyncStatus('Você está no modo local. Conecte sua conta para transferir seus dados para o celular.');
+        setShowAuthModal(true);
       }
-      setTimeout(() => setSyncStatus(null), 5000);
+      setTimeout(() => setSyncStatus(null), 6000);
     } catch (err: any) {
       setSyncStatus(`Aviso: ${err.message || 'Falha na sincronização'}`);
-      setTimeout(() => setSyncStatus(null), 5000);
+      setTimeout(() => setSyncStatus(null), 6000);
     } finally {
       setIsSyncing(false);
     }
@@ -411,6 +419,20 @@ export const Settings: React.FC = () => {
             )}
           </div>
         </div>
+
+        {!user && (
+          <div className="p-3.5 mx-4 mb-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5 animate-fadeIn">
+            <AlertTriangle size={18} className="shrink-0 mt-0.5 text-amber-500" />
+            <div className="space-y-1">
+              <p className="font-semibold text-zinc-900 dark:text-zinc-100">
+                Atenção: Modo Local ativo neste dispositivo
+              </p>
+              <p className="leading-relaxed text-zinc-600 dark:text-zinc-400">
+                Seus dados estão salvos apenas na memória deste aparelho. Para transferir suas despesas para o Android ou outro computador, clique em <strong>Entrar / Cadastrar</strong> acima. Ao entrar, todos os seus dados deste aparelho serão enviados automaticamente para sua nuvem.
+              </p>
+            </div>
+          </div>
+        )}
       </AdwPreferencesGroup>
 
       {/* Section 1: Gestão Financeira */}

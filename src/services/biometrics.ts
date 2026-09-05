@@ -28,11 +28,13 @@ export const biometricsService = {
         reason: reason,
         title: 'Desbloquear Finante',
         subtitle: 'Use sua digital ou rosto',
-        description: 'Segurança financeira'
+        description: 'Toque no sensor biométrico ou olhe para a câmera',
+        negativeButtonText: 'Usar PIN',
+        maxAttempts: 5
       });
       return true; // Sucesso
     } catch (e) {
-      console.error('Falha na biometria:', e);
+      console.warn('Falha ou cancelamento na biometria:', e);
       return false;
     }
   }

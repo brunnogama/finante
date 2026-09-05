@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Lock, Fingerprint, Delete, CheckCircle2, Shield, LogOut, RefreshCw, Mail, KeyRound, ArrowLeft, UserPlus, LogIn, Link2 } from 'lucide-react';
 import { WindowControls } from './WindowControls';
 import { FinanteIcon } from './FinanteIcon';
@@ -24,6 +24,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const hasPromptedBiometricsRef = useRef(false);
+  const isAuthenticatingRef = useRef(false);
 
   useEffect(() => {
     // Check active session & local PIN
@@ -78,11 +80,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
     try {
       const available = await biometricsService.isAvailable();
       setIsBiometricSupported(available);
-      if (available) {
-        // Small delay to ensure Android window is focused
+      if (available && !hasPromptedBiometricsRef.current) {
+        hasPromptedBiometricsRef.current = true;
+        // 800ms delay to ensure Android window, webview layout and focus are fully established
         setTimeout(() => {
           handleBiometricAuth();
-        }, 350);
+        }, 800);
       }
     } catch {
       setIsBiometricSupported(false);
@@ -90,6 +93,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
   };
 
   const handleBiometricAuth = async () => {
+    if (isAuthenticatingRef.current) return;
+    isAuthenticatingRef.current = true;
     setErrorMsg(null);
     try {
       const success = await biometricsService.authenticate();
@@ -98,6 +103,10 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
       }
     } catch {
       // Keep PIN unlock available
+    } finally {
+      setTimeout(() => {
+        isAuthenticatingRef.current = false;
+      }, 600);
     }
   };
 
@@ -579,7 +588,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
           </p>
 
           {/* PIN Dots Indicator */}
-          <div className="flex items-center gap-4 mb-7">
+          <div className="flex items-center gap-4 mb-5">
             {[0, 1, 2, 3].map((i) => {
               const isFilled = pinInput.length > i;
               const hasError = !!errorMsg;
@@ -599,9 +608,22 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
             })}
           </div>
 
+          {/* Quick Biometrics Button (if supported) */}
+          {step === 'unlock' && isBiometricSupported && (
+            <button
+              type="button"
+              onClick={handleBiometricAuth}
+              className="mb-5 px-3.5 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] active:scale-95 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white flex items-center gap-2 cursor-pointer transition-all shadow-sm"
+              title="Autenticar usando biometria nativa"
+            >
+              <Fingerprint size={16} className="text-[#3584e4] animate-pulse" />
+              <span>Usar Digital ou Rosto</span>
+            </button>
+          )}
+
           {/* Error Feedback */}
           {errorMsg && (
-            <p className="text-xs font-semibold text-[#e01b24] -mt-3 mb-5 animate-[shake_0.2s_ease]">
+            <p className="text-xs font-semibold text-[#e01b24] -mt-2 mb-4 animate-[shake_0.2s_ease]">
               {errorMsg}
             </p>
           )}
