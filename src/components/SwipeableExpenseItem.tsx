@@ -37,6 +37,9 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const isHorizontalSwipeRef = useRef<boolean | null>(null);
+  const maxDragDistRef = useRef(0);
+  const touchStartTimeRef = useRef(0);
+  const lastTapHandledRef = useRef(0);
 
   const MAX_SWIPE = 135; // Maximum reveal width for the two action buttons
 
@@ -44,6 +47,8 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     startXRef.current = e.touches[0].clientX;
     startYRef.current = e.touches[0].clientY;
     isHorizontalSwipeRef.current = null;
+    maxDragDistRef.current = 0;
+    touchStartTimeRef.current = Date.now();
     setIsSwiping(true);
   };
 
@@ -54,11 +59,15 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     const currentY = e.touches[0].clientY;
     const diffX = currentX - startXRef.current;
     const diffY = currentY - startYRef.current;
+    const absX = Math.abs(diffX);
+    const absY = Math.abs(diffY);
+
+    maxDragDistRef.current = Math.max(maxDragDistRef.current, absX, absY);
 
     // Determine swipe direction if not yet locked
     if (isHorizontalSwipeRef.current === null) {
-      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
-        isHorizontalSwipeRef.current = Math.abs(diffX) > Math.abs(diffY);
+      if (absX > 6 || absY > 6) {
+        isHorizontalSwipeRef.current = absX > absY;
       }
     }
 
@@ -66,11 +75,9 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
 
     // If swiping horizontally, calculate offset
     if (isOpen) {
-      // Starting from open position (-MAX_SWIPE)
       const newOffset = -MAX_SWIPE + diffX;
       setOffsetX(Math.max(-MAX_SWIPE - 20, Math.min(0, newOffset)));
     } else {
-      // Starting from closed position (0)
       if (diffX < 0) {
         setOffsetX(Math.max(-MAX_SWIPE - 20, diffX));
       } else {
@@ -81,12 +88,26 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
 
   const handleTouchEnd = () => {
     setIsSwiping(false);
+    const elapsed = Date.now() - touchStartTimeRef.current;
+
+    // Direct tap detection: if barely moved and quick release, treat as instant card tap!
+    if (maxDragDistRef.current < 10 && elapsed < 500) {
+      lastTapHandledRef.current = Date.now();
+      if (isOpen) {
+        setOffsetX(0);
+        setIsOpen(false);
+      } else {
+        onSelect(expense);
+      }
+      return;
+    }
+
     if (!isHorizontalSwipeRef.current) {
       return;
     }
 
     if (isOpen) {
-      if (offsetX > -MAX_SWIPE + 40) {
+      if (offsetX > -MAX_SWIPE + 35) {
         // Swiped right -> close
         setOffsetX(0);
         setIsOpen(false);
@@ -96,7 +117,7 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
         setIsOpen(true);
       }
     } else {
-      if (offsetX < -45) {
+      if (offsetX < -35) {
         // Swiped left -> open
         setOffsetX(-MAX_SWIPE);
         setIsOpen(true);
@@ -105,6 +126,22 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
         setOffsetX(0);
         setIsOpen(false);
       }
+    }
+  };
+
+  const handleCardClick = () => {
+    // Avoid double firing if touchEnd already triggered onSelect within 400ms
+    if (Date.now() - lastTapHandledRef.current < 400) {
+      return;
+    }
+    if (maxDragDistRef.current > 10) {
+      return;
+    }
+    if (isOpen) {
+      setOffsetX(0);
+      setIsOpen(false);
+    } else {
+      onSelect(expense);
     }
   };
 
@@ -123,7 +160,7 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     <div className="relative overflow-hidden rounded-2xl bg-black/[0.04] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 my-1.5 select-none">
       
       {/* Background Actions Revealed on Swipe Left */}
-      <div className="absolute inset-y-0 right-0 flex items-center justify-end px-2 gap-1.5 w-36 bg-zinc-200/90 dark:bg-zinc-800/90">
+      <div className="absolute inset-y-0 right-0 flex items-center justify-end px-2 gap-1.5 w-36 bg-zinc-200/90 dark:bg-zinc-800/90 z-0">
         <button
           type="button"
           onClick={(e) => {
@@ -162,15 +199,8 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onClick={() => {
-          if (isOpen) {
-            setOffsetX(0);
-            setIsOpen(false);
-          } else {
-            onSelect(expense);
-          }
-        }}
-        className={`relative z-10 p-3.5 bg-white dark:bg-[#282828] border-b border-black/5 dark:border-white/5 flex items-center justify-between gap-3 cursor-pointer transition-colors hover:bg-black/[0.01] dark:hover:bg-white/[0.02] active:bg-black/[0.03] dark:active:bg-white/[0.04]`}
+        onClick={handleCardClick}
+        className="relative z-10 p-3.5 bg-white dark:bg-[#282828] border-b border-black/5 dark:border-white/5 flex items-center justify-between gap-3 cursor-pointer transition-colors touch-pan-y hover:bg-black/[0.01] dark:hover:bg-white/[0.02] active:bg-black/[0.03] dark:active:bg-white/[0.04]"
       >
         {/* Left: Icon & Info */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -229,10 +259,28 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
           )}
         </div>
 
-        {/* Swipe hint chevron */}
-        <div className="pl-1 text-zinc-300 dark:text-zinc-600">
-          <ChevronRight size={14} />
-        </div>
+        {/* Toggle chevron button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            lastTapHandledRef.current = Date.now();
+            if (isOpen) {
+              setOffsetX(0);
+              setIsOpen(false);
+            } else {
+              setOffsetX(-MAX_SWIPE);
+              setIsOpen(true);
+            }
+          }}
+          className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-all cursor-pointer"
+          title={isOpen ? "Fechar ações" : "Abrir ações (Editar/Excluir)"}
+        >
+          <ChevronRight 
+            size={16} 
+            className={`transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#3584e4]' : ''}`} 
+          />
+        </button>
 
       </div>
     </div>

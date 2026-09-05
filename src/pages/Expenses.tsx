@@ -1300,7 +1300,7 @@ export const Expenses: React.FC = () => {
                               <th className="py-3 px-4 font-bold text-right">Valor</th>
                               <th className="py-3 px-4 font-bold text-right">Pago</th>
                               <th className="py-3 px-4 font-bold text-right">Saldo</th>
-                              <th className="py-3 px-4 font-bold text-center w-10"></th>
+                              <th className="py-3 px-4 font-bold text-center w-28">Ações</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zinc-200/60 dark:divide-white/5 text-sm">
@@ -1430,9 +1430,34 @@ export const Expenses: React.FC = () => {
                                   )}
                                 </td>
 
-                                {/* Chevron */}
-                                <td className="py-3.5 px-4 text-center">
-                                  <ChevronRight size={15} className="text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-white transition-colors" />
+                                {/* Ações */}
+                                <td className="py-3.5 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex items-center justify-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditModal(exp)}
+                                      className="p-1.5 rounded-lg text-zinc-400 hover:text-[#3584e4] hover:bg-[#3584e4]/10 transition-colors cursor-pointer"
+                                      title="Editar despesa"
+                                    >
+                                      <Edit3 size={15} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeleteConfirmId(exp.id!)}
+                                      className="p-1.5 rounded-lg text-zinc-400 hover:text-[#e01b24] hover:bg-[#e01b24]/10 transition-colors cursor-pointer"
+                                      title="Excluir despesa"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedExpense(exp)}
+                                      className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                                      title="Ver detalhes"
+                                    >
+                                      <ChevronRight size={15} />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
