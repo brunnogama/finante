@@ -70,6 +70,21 @@ export const Income: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close modals on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteConfirmId !== null) {
+          setDeleteConfirmId(null);
+        } else if (isFormModalOpen) {
+          setIsFormModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteConfirmId, isFormModalOpen]);
+
   // Fetch data & Realtime subscription
   useEffect(() => {
     fetchIncomes();

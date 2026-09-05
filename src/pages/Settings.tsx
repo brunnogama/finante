@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   Settings as SettingsIcon, 
@@ -18,6 +18,8 @@ import {
   KeyRound,
   LogIn,
   UserPlus,
+  Download,
+  Upload,
   X
 } from 'lucide-react';
 import { PinSetupModal } from '../components/PinSetupModal';
@@ -25,7 +27,16 @@ import { ChangelogModal } from '../components/ChangelogModal';
 import { ManageCategoriesModal } from '../components/ManageCategoriesModal';
 import { AdwPreferencesGroup } from '../components/adwaita/AdwPreferencesGroup';
 import { AdwActionRow } from '../components/adwaita/AdwActionRow';
-import { supabase, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser } from '../services/supabase';
+import { 
+  supabase, 
+  signInWithGoogle, 
+  signInWithEmail, 
+  signUpWithEmail, 
+  signOutUser,
+  syncLocalDataToCloud,
+  exportAllDataToJson,
+  importDataFromJson
+} from '../services/supabase';
 import { checkAppUpdate } from '../services/updater';
 import pkg from '../../package.json';
 
@@ -60,6 +71,25 @@ export const Settings: React.FC = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Close any open modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showAuthModal) {
+          setShowAuthModal(false);
+        } else if (showPinModal) {
+          setShowPinModal(false);
+        } else if (showChangelog) {
+          setShowChangelog(false);
+        } else if (showCategoriesModal) {
+          setShowCategoriesModal(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAuthModal, showPinModal, showChangelog, showCategoriesModal]);
 
   const handleGoogleConnect = async () => {
     setIsSigningIn(true);
@@ -143,20 +173,71 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleForceSync = async () => {
-    setUpdateStatus('Sincronizando dados locais com o Supabase...');
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportBackup = async () => {
     try {
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      const jsonStr = await exportAllDataToJson();
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `finante-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setSyncStatus('Backup exportado com sucesso!');
+      setTimeout(() => setSyncStatus(null), 4000);
+    } catch (err: any) {
+      setSyncStatus(`Erro ao exportar backup: ${err.message || err}`);
+      setTimeout(() => setSyncStatus(null), 5000);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const text = event.target?.result as string;
+        if (!text) return;
+        const result = await importDataFromJson(text);
+        setSyncStatus(result.message);
+        setTimeout(() => setSyncStatus(null), 6000);
+      };
+      reader.readAsText(file);
+    } catch (err: any) {
+      setSyncStatus(`Erro ao importar backup: ${err.message || err}`);
+      setTimeout(() => setSyncStatus(null), 5000);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-      setTimeout(() => {
-        setUpdateStatus('Dados sincronizados e cache atualizado com sucesso!');
-        setTimeout(() => setUpdateStatus(null), 3000);
-      }, 800);
-    } catch {
-      setUpdateStatus('Sincronizado!');
-      setTimeout(() => setUpdateStatus(null), 3000);
+    }
+  };
+
+  const handleForceSync = async () => {
+    setIsSyncing(true);
+    setSyncStatus('Sincronizando dados locais com o Supabase...');
+    try {
+      if (user) {
+        const result = await syncLocalDataToCloud();
+        setSyncStatus(`Sincronização concluída! (${result.expensesSynced} despesas, ${result.incomesSynced} receitas sincronizadas)`);
+      } else {
+        setSyncStatus('Você está no modo local. Conecte sua conta Google ou e-mail para sincronizar na nuvem.');
+      }
+      setTimeout(() => setSyncStatus(null), 5000);
+    } catch (err: any) {
+      setSyncStatus(`Aviso: ${err.message || 'Falha na sincronização'}`);
+      setTimeout(() => setSyncStatus(null), 5000);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -344,6 +425,15 @@ export const Settings: React.FC = () => {
 
       {/* Section 2: Segurança & Dados */}
       <AdwPreferencesGroup title="Segurança & Dados">
+        {/* Hidden File Input for Restore */}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+          accept=".json,application/json" 
+          className="hidden" 
+        />
+
         <AdwActionRow
           title="Privacidade & Bloqueio por PIN"
           subtitle="Configurar senha de 4 dígitos e biometria digital"
@@ -357,16 +447,57 @@ export const Settings: React.FC = () => {
         />
 
         <AdwActionRow
-          title="Sincronização & Limpeza de Cache"
-          subtitle="Atualizar dados offline com a nuvem e limpar cache local"
+          title="Sincronizar Dados com a Nuvem"
+          subtitle={user ? 'Enviar dados cadastrados offline para sua conta no Supabase' : 'Conecte sua conta para sincronizar entre aparelhos'}
           prefix={
             <div className="w-9 h-9 rounded-xl bg-[#21a1a9]/10 text-[#21a1a9] flex items-center justify-center">
               <Database size={18} strokeWidth={2.2} />
             </div>
           }
-          suffix={<ChevronRight size={16} className="text-zinc-400" />}
+          suffix={
+            <button 
+              type="button" 
+              onClick={(e) => { e.stopPropagation(); handleForceSync(); }} 
+              disabled={isSyncing}
+              className="adw-btn text-xs font-semibold px-3 py-1.5 cursor-pointer inline-flex items-center gap-1.5 shrink-0 disabled:opacity-60"
+            >
+              <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+              <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}</span>
+            </button>
+          }
           onClick={handleForceSync}
         />
+
+        <AdwActionRow
+          title="Exportar Backup Completo (.json)"
+          subtitle="Baixar arquivo com todas as despesas, receitas, categorias e investimentos"
+          prefix={
+            <div className="w-9 h-9 rounded-xl bg-[#3584e4]/10 text-[#3584e4] flex items-center justify-center">
+              <Download size={18} strokeWidth={2.2} />
+            </div>
+          }
+          suffix={<ChevronRight size={16} className="text-zinc-400" />}
+          onClick={handleExportBackup}
+        />
+
+        <AdwActionRow
+          title="Restaurar Backup (.json)"
+          subtitle="Carregar arquivo de backup salvo anteriormente para recuperar seus dados"
+          prefix={
+            <div className="w-9 h-9 rounded-xl bg-[#2ec27e]/10 text-[#2ec27e] flex items-center justify-center">
+              <Upload size={18} strokeWidth={2.2} />
+            </div>
+          }
+          suffix={<ChevronRight size={16} className="text-zinc-400" />}
+          onClick={() => fileInputRef.current?.click()}
+        />
+
+        {syncStatus && (
+          <div className="p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/10 dark:border-white/10 text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2 animate-fadeIn">
+            <CheckCircle2 size={15} className="text-[#3584e4] shrink-0" />
+            <span>{syncStatus}</span>
+          </div>
+        )}
       </AdwPreferencesGroup>
 
       {/* Section 3: Sobre o Aplicativo */}

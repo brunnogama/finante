@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   Building2, 
@@ -10,7 +11,8 @@ import {
   Search, 
   AlertCircle,
   Sparkles,
-  ChevronDown
+  Palette,
+  icons
 } from 'lucide-react';
 import { 
   getExpenseTypes, 
@@ -24,6 +26,15 @@ import {
   type CompanyRecord 
 } from '../services/supabase';
 import { CategoryIcon } from './CategoryIcon';
+import { PortalDropdown } from './PortalDropdown';
+import { CategoryStylePickerModal } from './CategoryStylePickerModal';
+import { 
+  getCategoryStyle, 
+  getDefaultCategoryStyle, 
+  saveCategoryStyle, 
+  COLOR_PALETTES 
+} from '../services/categoryStyles';
+import type { CategoryStyleConfig } from '../services/categoryStyles';
 
 interface ManageCategoriesModalProps {
   onClose: () => void;
@@ -48,27 +59,47 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [companyType, setCompanyType] = useState('Moradia');
   const [editingCompanyId, setEditingCompanyId] = useState<number | null>(null);
-  const [isCompanyTypeDropdownOpen, setIsCompanyTypeDropdownOpen] = useState(false);
-  const companyTypeDropdownRef = useRef<HTMLDivElement>(null);
 
   // Form states - Type
   const [typeName, setTypeName] = useState('');
   const [editingTypeName, setEditingTypeName] = useState<string | null>(null);
   const [editTypeInput, setEditTypeInput] = useState('');
 
+  // Category style picker state
+  const [stylePickerTarget, setStylePickerTarget] = useState<{ typeName: string; isNew: boolean } | null>(null);
+  const [newTypeStyle, setNewTypeStyle] = useState<CategoryStyleConfig>({ iconName: 'Tag', colorKey: 'zinc' });
+  const [hasCustomizedNewStyle, setHasCustomizedNewStyle] = useState(false);
+
   // Delete confirmations
-  const [deleteCompanyId, setDeleteCompanyId] = useState<number | null>(null);
+  const [deletingCompany, setDeletingCompany] = useState<CompanyRecord | null>(null);
   const [deleteTypeName, setDeleteTypeName] = useState<string | null>(null);
 
+  const newTypeColor = useMemo(() => {
+    return COLOR_PALETTES.find(c => c.key === newTypeStyle.colorKey) || COLOR_PALETTES[0];
+  }, [newTypeStyle.colorKey]);
+
+  const NewTypeIconComp = useMemo(() => {
+    return (icons as Record<string, any>)[newTypeStyle.iconName] || Tag;
+  }, [newTypeStyle.iconName]);
+
+  // Close on Escape key
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (companyTypeDropdownRef.current && !companyTypeDropdownRef.current.contains(event.target as Node)) {
-        setIsCompanyTypeDropdownOpen(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (stylePickerTarget !== null) {
+          setStylePickerTarget(null);
+        } else if (deletingCompany !== null) {
+          setDeletingCompany(null);
+        } else if (deleteTypeName !== null) {
+          setDeleteTypeName(null);
+        } else {
+          onClose();
+        }
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [stylePickerTarget, deletingCompany, deleteTypeName, onClose]);
 
   useEffect(() => {
     loadData();
@@ -92,6 +123,17 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
     e.preventDefault();
     const cleanName = companyName.trim();
     if (!cleanName) return;
+
+    // Bloquear apenas se for o mesmo nome na MESMA categoria
+    const duplicate = companies.find(c => 
+      (editingCompanyId ? c.id !== editingCompanyId : true) &&
+      c.name.trim().toLowerCase() === cleanName.toLowerCase() &&
+      c.default_type.trim().toLowerCase() === companyType.trim().toLowerCase()
+    );
+    if (duplicate) {
+      alert(`A empresa "${cleanName}" já está cadastrada na categoria "${companyType}".`);
+      return;
+    }
 
     if (editingCompanyId) {
       await updateCompany(editingCompanyId, {
@@ -122,9 +164,17 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
     setCompanyName('');
   };
 
-  const handleConfirmDeleteCompany = async (id: number) => {
-    await deleteCompany(id);
-    setDeleteCompanyId(null);
+  const handleConfirmDeleteCompany = async (comp: CompanyRecord) => {
+    setDeletingCompany(null);
+    // Optimistic UI update: remove apenas este registro específico
+    setCompanies(prev => prev.filter(c => {
+      if (comp.id !== undefined && comp.id !== null && c.id !== undefined && c.id !== null) {
+        if (String(c.id) === String(comp.id)) return false;
+      }
+      return !(c.name.trim().toLowerCase() === comp.name.trim().toLowerCase() && 
+               c.default_type.trim().toLowerCase() === (comp.default_type || '').trim().toLowerCase());
+    }));
+    await deleteCompany(comp);
     await loadData();
     if (onUpdated) onUpdated();
   };
@@ -138,7 +188,10 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
     if (!clean) return;
 
     await addExpenseType(clean);
+    saveCategoryStyle(clean, newTypeStyle);
     setTypeName('');
+    setNewTypeStyle({ iconName: 'Tag', colorKey: 'zinc' });
+    setHasCustomizedNewStyle(false);
     await loadData();
     if (onUpdated) onUpdated();
   };
@@ -162,8 +215,10 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
       alert('Você precisa ter pelo menos um tipo de despesa cadastrado.');
       return;
     }
-    await deleteExpenseType(type);
     setDeleteTypeName(null);
+    // Optimistic UI update
+    setTypes(prev => prev.filter(t => t.trim().toLowerCase() !== type.trim().toLowerCase()));
+    await deleteExpenseType(type);
     await loadData();
     if (onUpdated) onUpdated();
   };
@@ -174,7 +229,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
       c.name.toLowerCase().includes(search.toLowerCase()) || 
       c.default_type.toLowerCase().includes(search.toLowerCase())
     )
-    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR') || a.default_type.localeCompare(b.default_type, 'pt-BR'));
 
   const filteredTypes = types
     .filter(t => 
@@ -182,8 +237,12 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
     )
     .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+      style={{ zIndex: 9000 }}
+      onClick={onClose}
+    >
       <div 
         className="adw-dialog max-w-xl w-full p-6 shadow-2xl animate-scaleIn overflow-hidden flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -199,7 +258,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                 Cadastros & Categorias
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Gerencie empresas e seus tipos de despesa associados
+                Gerencie empresas / fornecedores e categorias de despesa
               </p>
             </div>
           </div>
@@ -224,7 +283,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
             }`}
           >
             <Building2 size={15} />
-            <span>Empresas ({companies.length})</span>
+            <span>Empresas / Fornecedores ({companies.length})</span>
           </button>
 
           <button
@@ -237,7 +296,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
             }`}
           >
             <Tag size={15} />
-            <span>Tipos de Despesa ({types.length})</span>
+            <span>Categorias de Despesa ({types.length})</span>
           </button>
         </div>
 
@@ -254,7 +313,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
         </div>
         {/* TAB 1: EMPRESAS */}
         {activeTab === 'companies' && (
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-visible flex flex-col min-h-0">
             
             {/* Add / Edit Form */}
             <form onSubmit={handleSaveCompany} className="p-3.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 mb-4 space-y-3">
@@ -285,38 +344,16 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                   />
                 </div>
 
-                <div className="relative" ref={companyTypeDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsCompanyTypeDropdownOpen(!isCompanyTypeDropdownOpen)}
-                    className="adw-entry text-xs flex items-center justify-between cursor-pointer"
-                  >
-                    <span>{companyType}</span>
-                    <ChevronDown size={14} className={`text-zinc-400 transition-transform ${isCompanyTypeDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isCompanyTypeDropdownOpen && (
-                    <div className="absolute left-0 right-0 mt-1 adw-popover rounded-xl p-1.5 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                      {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(t => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => {
-                            setCompanyType(t);
-                            setIsCompanyTypeDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                            companyType === t 
-                              ? 'bg-[#3584e4]/15 text-[#3584e4] font-bold' 
-                              : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5'
-                          }`}
-                        >
-                          <span>{t}</span>
-                          {companyType === t && <Check size={14} className="text-[#3584e4]" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div>
+                  <PortalDropdown
+                    value={companyType}
+                    options={[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(t => ({
+                      value: t,
+                      label: t,
+                      icon: <CategoryIcon type={t} size={14} />
+                    }))}
+                    onChange={setCompanyType}
+                  />
                 </div>
               </div>
 
@@ -338,7 +375,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
               ) : (
                 filteredCompanies.map(comp => (
                   <div 
-                    key={comp.id}
+                    key={comp.id ? `comp-${comp.id}` : `${comp.name}-${comp.default_type}`}
                     className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center justify-between gap-3 hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
@@ -363,7 +400,7 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeleteCompanyId(comp.id!)}
+                        onClick={() => setDeletingCompany(comp)}
                         className="p-1.5 rounded-lg hover:bg-[#e01b24]/10 text-zinc-500 hover:text-[#e01b24] transition-colors cursor-pointer"
                         title="Excluir"
                       >
@@ -384,17 +421,42 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
             
             {/* Add Type Form */}
             <form onSubmit={handleAddType} className="p-3.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 mb-4 space-y-3">
-              <span className="text-xs font-semibold text-zinc-900 dark:text-white block">
-                Novo Tipo de Despesa
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-900 dark:text-white block">
+                  Novo Tipo de Despesa
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  Clique no ícone para escolher ícone e cor
+                </span>
+              </div>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                {/* Clickable Icon Button */}
+                <button
+                  type="button"
+                  onClick={() => setStylePickerTarget({ typeName: typeName || 'Nova Categoria', isNew: true })}
+                  className="relative group shrink-0 p-0.5 rounded-xl transition-transform hover:scale-105 cursor-pointer"
+                  title="Clique para escolher o ícone e a cor"
+                >
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-xs ${newTypeColor.bgColor} ${newTypeColor.darkBgColor} border border-black/10 dark:border-white/10 group-hover:ring-2 group-hover:ring-[#3584e4]/50`}>
+                    <NewTypeIconComp size={18} className={`${newTypeColor.textColor} ${newTypeColor.darkTextColor}`} strokeWidth={2.3} />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#3584e4] text-white flex items-center justify-center shadow-xs">
+                    <Edit2 size={9} />
+                  </div>
+                </button>
+
                 <input 
                   type="text" 
                   required
                   placeholder="Nome do tipo (ex: Animais, Impostos...)"
                   value={typeName}
-                  onChange={(e) => setTypeName(e.target.value)}
+                  onChange={(e) => {
+                    setTypeName(e.target.value);
+                    if (!hasCustomizedNewStyle) {
+                      setNewTypeStyle(getDefaultCategoryStyle(e.target.value));
+                    }
+                  }}
                   className="adw-entry flex-1 text-xs"
                 />
                 <button
@@ -424,7 +486,17 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                       className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center justify-between gap-3 hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
                     >
                       <div className="flex items-center gap-2.5 flex-1">
-                        <CategoryIcon type={type} size={15} />
+                        <button
+                          type="button"
+                          onClick={() => setStylePickerTarget({ typeName: type, isNew: false })}
+                          className="group relative cursor-pointer transition-transform hover:scale-110 shrink-0"
+                          title="Clique para personalizar ícone e cor"
+                        >
+                          <CategoryIcon type={type} size={15} />
+                          <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#3584e4] text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-xs">
+                            <Edit2 size={8} />
+                          </span>
+                        </button>
 
                         {isEditing ? (
                           <div className="flex items-center gap-2 flex-1">
@@ -466,6 +538,14 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
+                            onClick={() => setStylePickerTarget({ typeName: type, isNew: false })}
+                            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
+                            title="Personalizar Ícone e Cor"
+                          >
+                            <Palette size={14} />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleStartEditType(type)}
                             className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
                             title="Renomear"
@@ -503,69 +583,116 @@ export const ManageCategoriesModal: React.FC<ManageCategoriesModalProps> = ({
         </div>
 
       </div>
-
-      {/* Delete Confirmation Modal for Company */}
-      {deleteCompanyId && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-          <div className="adw-dialog max-w-xs w-full p-5 text-center shadow-2xl">
-            <div className="w-10 h-10 rounded-full bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-2.5">
-              <AlertCircle size={22} />
-            </div>
-            <h5 className="font-bold text-sm text-zinc-900 dark:text-white">Excluir Empresa?</h5>
-            <p className="text-[11px] text-zinc-500 mt-1 mb-4">
-              Essa empresa será removida da lista rápida.
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setDeleteCompanyId(null)}
-                className="adw-btn flex-1 py-1.5 text-xs font-semibold cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => handleConfirmDeleteCompany(deleteCompanyId)}
-                className="adw-btn destructive-action flex-1 py-1.5 text-xs font-semibold cursor-pointer"
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal for Type */}
-      {deleteTypeName && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-          <div className="adw-dialog max-w-xs w-full p-5 text-center shadow-2xl">
-            <div className="w-10 h-10 rounded-full bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-2.5">
-              <AlertCircle size={22} />
-            </div>
-            <h5 className="font-bold text-sm text-zinc-900 dark:text-white">Excluir Tipo "{deleteTypeName}"?</h5>
-            <p className="text-[11px] text-zinc-500 mt-1 mb-4">
-              Despesas e empresas vinculadas a este tipo serão transferidas para a categoria padrão.
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setDeleteTypeName(null)}
-                className="adw-btn flex-1 py-1.5 text-xs font-semibold cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => handleConfirmDeleteType(deleteTypeName)}
-                className="adw-btn destructive-action flex-1 py-1.5 text-xs font-semibold cursor-pointer"
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
+  );
+
+  const deleteCompanyModal = deletingCompany ? (
+    <div 
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn"
+      style={{ zIndex: 99999 }}
+      onClick={() => setDeletingCompany(null)}
+    >
+      <div 
+        className="adw-dialog max-w-xs w-full p-5 text-center shadow-2xl animate-scaleIn"
+        style={{ zIndex: 100000 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-10 rounded-full bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-2.5">
+          <AlertCircle size={22} />
+        </div>
+        <h5 className="font-bold text-sm text-zinc-900 dark:text-white">Excluir Empresa "{deletingCompany.name}" ({deletingCompany.default_type})?</h5>
+        <p className="text-[11px] text-zinc-500 mt-1 mb-4">
+          Essa empresa será removida da lista de cadastros.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setDeletingCompany(null)}
+            className="adw-btn flex-1 py-1.5 text-xs font-semibold cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => handleConfirmDeleteCompany(deletingCompany)}
+            className="adw-btn destructive-action flex-1 py-1.5 text-xs font-semibold cursor-pointer"
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const deleteTypeModal = deleteTypeName ? (
+    <div 
+      className="fixed inset-0 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn"
+      style={{ zIndex: 99999 }}
+      onClick={() => setDeleteTypeName(null)}
+    >
+      <div 
+        className="adw-dialog max-w-xs w-full p-5 text-center shadow-2xl animate-scaleIn"
+        style={{ zIndex: 100000 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-10 h-10 rounded-full bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center mx-auto mb-2.5">
+          <AlertCircle size={22} />
+        </div>
+        <h5 className="font-bold text-sm text-zinc-900 dark:text-white">Excluir Tipo "{deleteTypeName}"?</h5>
+        <p className="text-[11px] text-zinc-500 mt-1 mb-4">
+          Despesas e empresas vinculadas a este tipo serão transferidas para a categoria padrão.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setDeleteTypeName(null)}
+            className="adw-btn flex-1 py-1.5 text-xs font-semibold cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => handleConfirmDeleteType(deleteTypeName)}
+            className="adw-btn destructive-action flex-1 py-1.5 text-xs font-semibold cursor-pointer"
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
+      {deleteCompanyModal && createPortal(deleteCompanyModal, document.body)}
+      {deleteTypeModal && createPortal(deleteTypeModal, document.body)}
+      {stylePickerTarget && createPortal(
+        <CategoryStylePickerModal
+          currentTypeName={stylePickerTarget.typeName}
+          initialIconName={
+            stylePickerTarget.isNew 
+              ? newTypeStyle.iconName 
+              : getCategoryStyle(stylePickerTarget.typeName).iconName
+          }
+          initialColorKey={
+            stylePickerTarget.isNew 
+              ? newTypeStyle.colorKey 
+              : getCategoryStyle(stylePickerTarget.typeName).colorKey
+          }
+          onSelect={(config) => {
+            if (stylePickerTarget.isNew) {
+              setNewTypeStyle(config);
+              setHasCustomizedNewStyle(true);
+            } else {
+              saveCategoryStyle(stylePickerTarget.typeName, config);
+              if (onUpdated) onUpdated();
+            }
+          }}
+          onClose={() => setStylePickerTarget(null)}
+        />,
+        document.body
+      )}
+    </>
   );
 };

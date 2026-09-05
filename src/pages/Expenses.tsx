@@ -27,7 +27,8 @@ import {
   Eye,
   Download,
   UploadCloud,
-  Repeat
+  Repeat,
+  Handshake
 } from 'lucide-react';
 import { 
   getExpenses, 
@@ -45,8 +46,10 @@ import {
   type IncomeRecord
 } from '../services/supabase';
 import { ManageCategoriesModal } from '../components/ManageCategoriesModal';
+import { NegotiateExpensesModal } from '../components/NegotiateExpensesModal';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { DatePicker } from '../components/DatePicker';
+import { PortalDropdown } from '../components/PortalDropdown';
 
 export const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
@@ -65,16 +68,15 @@ export const Expenses: React.FC = () => {
   // Custom Dropdown Open States
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [isFormCategoryDropdownOpen, setIsFormCategoryDropdownOpen] = useState(false);
   const [isCompanySuggestionsOpen, setIsCompanySuggestionsOpen] = useState(false);
 
   const monthDropdownRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
-  const formCategoryDropdownRef = useRef<HTMLDivElement>(null);
   const companyInputRef = useRef<HTMLDivElement>(null);
 
   // Modal States
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isNegotiateModalOpen, setIsNegotiateModalOpen] = useState(false);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [manageModalInitialTab, setManageModalInitialTab] = useState<'companies' | 'types'>('companies');
   const [selectedExpense, setSelectedExpense] = useState<ExpenseRecord | null>(null);
@@ -117,9 +119,6 @@ export const Expenses: React.FC = () => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
         setIsCategoryDropdownOpen(false);
       }
-      if (formCategoryDropdownRef.current && !formCategoryDropdownRef.current.contains(event.target as Node)) {
-        setIsFormCategoryDropdownOpen(false);
-      }
       if (companyInputRef.current && !companyInputRef.current.contains(event.target as Node)) {
         setIsCompanySuggestionsOpen(false);
       }
@@ -152,6 +151,31 @@ export const Expenses: React.FC = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Close any open modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (previewDoc) {
+          setPreviewDoc(null);
+        } else if (deleteConfirmId !== null) {
+          setDeleteConfirmId(null);
+        } else if (replicateConfirmExpense !== null) {
+          setReplicateConfirmExpense(null);
+        } else if (selectedExpense !== null) {
+          setSelectedExpense(null);
+        } else if (isFormModalOpen) {
+          setIsFormModalOpen(false);
+        } else if (isNegotiateModalOpen) {
+          setIsNegotiateModalOpen(false);
+        } else if (isManageModalOpen) {
+          setIsManageModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewDoc, deleteConfirmId, replicateConfirmExpense, selectedExpense, isFormModalOpen, isNegotiateModalOpen, isManageModalOpen]);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -440,7 +464,6 @@ export const Expenses: React.FC = () => {
     setBillName('');
     setReceiptAttachment(null);
     setReceiptName('');
-    setIsFormCategoryDropdownOpen(false);
     setIsCompanySuggestionsOpen(false);
     setSaveCompanyToFavorites(true);
     setIsRecurring(false);
@@ -468,7 +491,6 @@ export const Expenses: React.FC = () => {
     setBillName(expense.bill_name || '');
     setReceiptAttachment(expense.receipt_attachment || null);
     setReceiptName(expense.receipt_name || '');
-    setIsFormCategoryDropdownOpen(false);
     setIsCompanySuggestionsOpen(false);
     setSaveCompanyToFavorites(false);
     setIsRecurring(false);
@@ -503,7 +525,10 @@ export const Expenses: React.FC = () => {
     }
 
     if (saveCompanyToFavorites) {
-      const exists = companies.some(c => c.name.toLowerCase() === cleanCompany.toLowerCase());
+      const exists = companies.some(
+        c => c.name.toLowerCase() === cleanCompany.toLowerCase() && 
+             (c.default_type || 'Outros').toLowerCase() === expenseType.toLowerCase()
+      );
       if (!exists) {
         await addCompany({
           name: cleanCompany,
@@ -762,7 +787,9 @@ export const Expenses: React.FC = () => {
       const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
       const isLate = pDate ? pDate > due : false;
       const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amt);
-      const lateFee = isLateFee && paid > amt ? (paid - amt) : 0;
+      const lateFee = (exp.late_fee !== undefined && Number(exp.late_fee) > 0)
+        ? Number(exp.late_fee)
+        : (isLateFee && paid > amt ? (paid - amt) : 0);
       return acc + lateFee;
     }, 0);
 
@@ -789,7 +816,7 @@ export const Expenses: React.FC = () => {
     const list = !company.trim() 
       ? companies 
       : companies.filter(c => c.name.toLowerCase().includes(company.toLowerCase()));
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR') || (a.default_type || '').localeCompare(b.default_type || '', 'pt-BR'));
   }, [companies, company]);
 
   return (
@@ -809,13 +836,25 @@ export const Expenses: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenNewModal}
-          className="adw-btn suggested-action"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          <span>Nova Despesa</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsNegotiateModalOpen(true)}
+            className="adw-btn"
+            title="Renegociar contas em aberto e parcelar com juros calculados"
+          >
+            <Handshake size={16} strokeWidth={2.2} />
+            <span>Renegociação</span>
+          </button>
+
+          <button
+            onClick={handleOpenNewModal}
+            className="adw-btn suggested-action"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            <span>Nova Despesa</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary KPI Cards */}
@@ -1241,7 +1280,9 @@ export const Expenses: React.FC = () => {
                             const pDate = exp.paid_date ? exp.paid_date.split('T')[0] : '';
                             const isLate = pDate ? pDate > due : false;
                             const isLateFee = (exp.excess_type === 'late_fee') || (!exp.excess_type && isLate && paid > amount);
-                            const lateFee = isLateFee && paid > amount ? (paid - amount) : 0;
+                            const lateFee = (exp.late_fee !== undefined && Number(exp.late_fee) > 0)
+                              ? Number(exp.late_fee)
+                              : (isLateFee && paid > amount ? (paid - amount) : 0);
                             const overpayment = !isLateFee && paid > amount ? (paid - amount) : 0;
 
                             return (
@@ -1266,6 +1307,11 @@ export const Expenses: React.FC = () => {
                                     ) : (
                                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${dueInfo.color}`}>
                                         {dueInfo.label}
+                                      </span>
+                                    )}
+                                    {paid === 0 && exp.late_fee && Number(exp.late_fee) > 0 && (
+                                      <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 px-1.5 py-0.2 rounded-md">
+                                        +{formatCurrency(Number(exp.late_fee))} juros
                                       </span>
                                     )}
                                   </div>
@@ -1518,14 +1564,16 @@ export const Expenses: React.FC = () => {
                   const pDate = selectedExpense.paid_date ? selectedExpense.paid_date.split('T')[0] : '';
                   const isLate = pDate ? pDate > due : false;
                   const isLateFee = (selectedExpense.excess_type === 'late_fee') || (!selectedExpense.excess_type && isLate && pd > amt);
-                  const lateFee = isLateFee && pd > amt ? pd - amt : 0;
+                  const lateFee = (selectedExpense.late_fee !== undefined && Number(selectedExpense.late_fee) > 0)
+                    ? Number(selectedExpense.late_fee)
+                    : (isLateFee && pd > amt ? pd - amt : 0);
                   const overpayment = !isLateFee && pd > amt ? pd - amt : 0;
                   if (lateFee > 0) {
                     return (
                       <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800 text-rose-600 dark:text-rose-400">
                         <span className="flex items-center gap-1 font-semibold">
                           <Flame size={14} />
-                          Multa e Juros por Atraso:
+                          {selectedExpense.late_fee ? 'Multa e Juros (Acordo):' : 'Multa e Juros por Atraso:'}
                         </span>
                         <span className="font-bold">
                           + {formatCurrency(lateFee)}
@@ -1804,7 +1852,7 @@ export const Expenses: React.FC = () => {
                         </div>
                         {companySuggestions.map(comp => (
                           <button
-                            key={comp.id || comp.name}
+                            key={comp.id ? `comp-${comp.id}` : `${comp.name}-${comp.default_type}`}
                             type="button"
                             onClick={() => handleSelectRegisteredCompany(comp)}
                             className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/10 transition-colors group cursor-pointer"
@@ -1826,7 +1874,7 @@ export const Expenses: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     
                     {/* Category Dropdown */}
-                    <div className="relative z-20" ref={formCategoryDropdownRef}>
+                    <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                           Tipo de Despesa *
@@ -1834,7 +1882,6 @@ export const Expenses: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            setIsFormCategoryDropdownOpen(false);
                             setManageModalInitialTab('types');
                             setIsManageModalOpen(true);
                           }}
@@ -1843,37 +1890,16 @@ export const Expenses: React.FC = () => {
                           + Novo
                         </button>
                       </div>
-                      <button 
-                        type="button"
-                        onClick={() => setIsFormCategoryDropdownOpen(!isFormCategoryDropdownOpen)}
-                        className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between font-semibold cursor-pointer"
-                      >
-                        <span className="truncate">{expenseType}</span>
-                        <ChevronDown size={16} className={`text-zinc-400 transition-transform duration-200 ${isFormCategoryDropdownOpen ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {isFormCategoryDropdownOpen && (
-                        <div className="absolute left-0 right-0 mt-1 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl p-1.5 shadow-2xl z-50 max-h-52 overflow-y-auto">
-                          {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
-                            <button
-                              key={cat}
-                              type="button"
-                              onClick={() => {
-                                setExpenseType(cat);
-                                setIsFormCategoryDropdownOpen(false);
-                              }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                                expenseType === cat 
-                                  ? 'bg-[#3584e4]/15 text-[#3584e4] font-bold' 
-                                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
-                              }`}
-                            >
-                              <span>{cat}</span>
-                              {expenseType === cat && <Check size={16} className="text-[#3584e4]" />}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                      <PortalDropdown
+                        value={expenseType}
+                        options={[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => ({
+                          value: cat,
+                          label: cat,
+                          icon: <CategoryIcon type={cat} size={15} />
+                        }))}
+                        onChange={setExpenseType}
+                        buttonClassName="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between font-semibold cursor-pointer"
+                      />
                     </div>
 
                     <div>
@@ -1987,7 +2013,7 @@ export const Expenses: React.FC = () => {
                   </div>
 
                   {/* Option to save company if new */}
-                  {!editingId && company.trim() && !companies.some(c => c.name.toLowerCase() === company.trim().toLowerCase()) && (
+                  {!editingId && company.trim() && !companies.some(c => c.name.toLowerCase() === company.trim().toLowerCase() && (c.default_type || 'Outros').toLowerCase() === expenseType.toLowerCase()) && (
                     <label className="flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
                       <input 
                         type="checkbox"
@@ -1997,7 +2023,7 @@ export const Expenses: React.FC = () => {
                       />
                       <span className="flex items-center gap-1">
                         <BookmarkPlus size={14} className="text-emerald-500" />
-                        Salvar "{company.trim()}" em Fornecedores favoritos
+                        Salvar "{company.trim()}" em Fornecedores favoritos ({expenseType})
                       </span>
                     </label>
                   )}
@@ -2578,6 +2604,21 @@ export const Expenses: React.FC = () => {
           initialTab={manageModalInitialTab}
           onClose={() => setIsManageModalOpen(false)}
           onUpdated={loadAllData}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* NEGOTIATE EXPENSES MODAL */}
+      {/* ========================================================================= */}
+      {isNegotiateModalOpen && (
+        <NegotiateExpensesModal
+          expenses={expenses}
+          types={types}
+          onClose={() => setIsNegotiateModalOpen(false)}
+          onSuccess={async () => {
+            setIsNegotiateModalOpen(false);
+            await loadAllData();
+          }}
         />
       )}
 

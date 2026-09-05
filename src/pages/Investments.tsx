@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   TrendingUp, 
   Plus, 
@@ -9,8 +9,6 @@ import {
   Edit3, 
   Trash2, 
   X, 
-  Check, 
-  ChevronDown, 
   Layers, 
   Sparkles,
   AlertCircle
@@ -39,6 +37,7 @@ import {
   type InvestmentRecord 
 } from '../services/supabase';
 import { DatePicker } from '../components/DatePicker';
+import { PortalDropdown } from '../components/PortalDropdown';
 
 const INVESTMENT_CATEGORIES = [
   'Ações',
@@ -92,19 +91,21 @@ export const Investments: React.FC = () => {
   const [amountInput, setAmountInput] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close category dropdown on click outside
+  // Close modals on Escape key
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
-        setIsCategoryDropdownOpen(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (deleteConfirmId !== null) {
+          setDeleteConfirmId(null);
+        } else if (isFormModalOpen) {
+          setIsFormModalOpen(false);
+        }
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteConfirmId, isFormModalOpen]);
 
   // Realtime subscription
   useEffect(() => {
@@ -715,47 +716,20 @@ export const Investments: React.FC = () => {
               </div>
 
               {/* Categoria Dropdown */}
-              <div className="relative" ref={categoryDropdownRef}>
+              <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
                   Classe de Ativo
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[category] || '#888' }} />
-                    <span>{category}</span>
-                  </div>
-                  <ChevronDown size={14} className={`text-zinc-400 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isCategoryDropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-1 adw-popover rounded-xl p-1.5 shadow-2xl z-50 animate-[scaleIn_0.12s_ease]">
-                    {INVESTMENT_CATEGORIES.map(c => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => {
-                          setCategory(c);
-                          setIsCategoryDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                          category === c 
-                            ? 'bg-[#3584e4] text-white font-bold' 
-                            : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[c] || '#888' }} />
-                          <span>{c}</span>
-                        </div>
-                        {category === c && <Check size={16} className="text-white" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <PortalDropdown
+                  value={category}
+                  options={INVESTMENT_CATEGORIES.map(c => ({
+                    value: c,
+                    label: c,
+                    icon: <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CATEGORY_COLORS[c] || '#888' }} />
+                  }))}
+                  onChange={setCategory}
+                  buttonClassName="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 outline-none flex items-center justify-between cursor-pointer"
+                />
               </div>
 
               {/* Valor & Data */}

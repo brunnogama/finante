@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   format, 
   addMonths, 
@@ -49,6 +50,13 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const selectedDate = value ? parseSafeDate(value) : null;
   const [currentMonth, setCurrentMonth] = useState<Date>(selectedDate || new Date());
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  const [coords, setCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+  }>({ left: 0 });
 
   // Sync view month with selected date when opened or changed
   useEffect(() => {
@@ -57,10 +65,45 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     }
   }, [value]);
 
-  // Click outside to close
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUpward = spaceBelow < 330 && spaceAbove > spaceBelow;
+
+    setCoords({
+      top: openUpward ? undefined : rect.bottom + 6,
+      bottom: openUpward ? window.innerHeight - rect.top + 6 : undefined,
+      left: Math.max(8, Math.min(rect.left, window.innerWidth - 300))
+    });
+  }, []);
+
+  const handleToggle = () => {
+    if (!isOpen) {
+      updatePosition();
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
+  // Click outside and escape to close
   useEffect(() => {
+    if (!isOpen) return;
+
+    const handleScrollOrResize = (e: Event) => {
+      if (popoverRef.current && popoverRef.current.contains(e.target as Node)) {
+        return;
+      }
+      updatePosition();
+    };
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current && !containerRef.current.contains(event.target as Node) &&
+        popoverRef.current && !popoverRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -71,15 +114,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
-    }
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
     return () => {
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, updatePosition]);
 
   const nextMonth = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -131,7 +177,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       {/* Main clickable input box */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className={`w-full bg-black/5 dark:bg-white/5 border ${
           isOpen 
             ? 'border-[#3584e4] ring-2 ring-[#3584e4]/20' 
@@ -147,8 +193,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </button>
 
       {/* Floating Libadwaita Calendar Popover */}
-      {isOpen && (
-        <div className="absolute left-0 mt-2 z-50 bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl p-3.5 w-72 animate-in fade-in zoom-in-95 duration-100">
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div 
+          ref={popoverRef}
+          className="fixed bg-white dark:bg-[#383838] border border-black/10 dark:border-white/10 rounded-2xl shadow-2xl p-3.5 w-72 animate-in fade-in zoom-in-95 duration-100"
+          style={{
+            top: coords.top,
+            bottom: coords.bottom,
+            left: coords.left,
+            zIndex: 999999
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           
           {/* Header: Month / Year & Prev / Next */}
           <div className="flex items-center justify-between mb-3 px-1">
@@ -230,7 +286,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             </button>
           </div>
 
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

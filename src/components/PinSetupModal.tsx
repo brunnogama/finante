@@ -19,6 +19,17 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({ onClose }) => {
     }
   }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete') {
       e.preventDefault();

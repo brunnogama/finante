@@ -94,6 +94,17 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({ onClose, current
     checkForNativeUpdate();
   }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const checkForNativeUpdate = async () => {
     try {
       const update = await checkAppUpdate();

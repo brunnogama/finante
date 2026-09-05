@@ -34,3 +34,9 @@ dist-ssr
 finante.key
 finante.key.pub
 
+# Android
+*.apk
+
+# Linux
+*.rpm
+

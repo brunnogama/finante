@@ -3,7 +3,7 @@ import { Lock, Fingerprint, Delete, CheckCircle2, Shield, LogOut, RefreshCw, Mai
 import { WindowControls } from './WindowControls';
 import { FinanteIcon } from './FinanteIcon';
 import { biometricsService } from '../services/biometrics';
-import { supabase, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser, setSessionFromUrl } from '../services/supabase';
+import { supabase, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser, setSessionFromUrl, syncLocalDataToCloud } from '../services/supabase';
 
 interface LockScreenProps {
   onUnlocked: () => void;
@@ -34,6 +34,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
 
       if (session?.user) {
         setUser(session.user);
+        syncLocalDataToCloud().catch(e => console.log('Auto-sync info:', e));
         if (!savedPin) {
           setStep('create');
         } else {
@@ -58,6 +59,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlocked }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
+        syncLocalDataToCloud().catch(e => console.log('Auto-sync info:', e));
         const savedPin = localStorage.getItem('finante_pin');
         if (!savedPin) {
           setStep('create');
