@@ -34,20 +34,19 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
   const [isSwiping, setIsSwiping] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
+  const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
-  const isHorizontalSwipeRef = useRef<boolean | null>(null);
-  const maxDragDistRef = useRef(0);
   const touchStartTimeRef = useRef(0);
-  const lastTapHandledRef = useRef(0);
+  const touchMovedHorizontallyRef = useRef(false);
 
   const MAX_SWIPE = 135; // Maximum reveal width for the two action buttons
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    isDraggingRef.current = false;
+    touchMovedHorizontallyRef.current = false;
     startXRef.current = e.touches[0].clientX;
     startYRef.current = e.touches[0].clientY;
-    isHorizontalSwipeRef.current = null;
-    maxDragDistRef.current = 0;
     touchStartTimeRef.current = Date.now();
     setIsSwiping(true);
   };
@@ -62,26 +61,22 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     const absX = Math.abs(diffX);
     const absY = Math.abs(diffY);
 
-    maxDragDistRef.current = Math.max(maxDragDistRef.current, absX, absY);
-
-    // Determine swipe direction if not yet locked
-    if (isHorizontalSwipeRef.current === null) {
-      if (absX > 6 || absY > 6) {
-        isHorizontalSwipeRef.current = absX > absY;
-      }
+    if (absX > 8 || absY > 8) {
+      isDraggingRef.current = true;
     }
 
-    if (!isHorizontalSwipeRef.current) return;
-
-    // If swiping horizontally, calculate offset
-    if (isOpen) {
-      const newOffset = -MAX_SWIPE + diffX;
-      setOffsetX(Math.max(-MAX_SWIPE - 20, Math.min(0, newOffset)));
-    } else {
-      if (diffX < 0) {
-        setOffsetX(Math.max(-MAX_SWIPE - 20, diffX));
+    // Only track horizontal swipe when horizontal motion is significant and greater than vertical motion
+    if (absX > absY && absX > 10) {
+      touchMovedHorizontallyRef.current = true;
+      if (isOpen) {
+        const newOffset = -MAX_SWIPE + diffX;
+        setOffsetX(Math.max(-MAX_SWIPE - 20, Math.min(0, newOffset)));
       } else {
-        setOffsetX(0);
+        if (diffX < 0) {
+          setOffsetX(Math.max(-MAX_SWIPE - 20, diffX));
+        } else {
+          setOffsetX(0);
+        }
       }
     }
   };
@@ -90,9 +85,8 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     setIsSwiping(false);
     const elapsed = Date.now() - touchStartTimeRef.current;
 
-    // Direct tap detection: if barely moved and quick release, treat as instant card tap!
-    if (maxDragDistRef.current < 10 && elapsed < 500) {
-      lastTapHandledRef.current = Date.now();
+    // Direct tap detection: if finger didn't drag significantly and released quickly (< 500ms)
+    if (!isDraggingRef.current && elapsed < 500) {
       if (isOpen) {
         setOffsetX(0);
         setIsOpen(false);
@@ -102,39 +96,43 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
       return;
     }
 
-    if (!isHorizontalSwipeRef.current) {
-      return;
-    }
-
-    if (isOpen) {
-      if (offsetX > -MAX_SWIPE + 35) {
-        // Swiped right -> close
-        setOffsetX(0);
-        setIsOpen(false);
+    if (touchMovedHorizontallyRef.current) {
+      if (isOpen) {
+        if (offsetX > -MAX_SWIPE + 35) {
+          // Swiped right -> close
+          setOffsetX(0);
+          setIsOpen(false);
+        } else {
+          // Snap open
+          setOffsetX(-MAX_SWIPE);
+          setIsOpen(true);
+        }
       } else {
-        // Snap open
-        setOffsetX(-MAX_SWIPE);
-        setIsOpen(true);
+        if (offsetX < -35) {
+          // Swiped left -> open
+          setOffsetX(-MAX_SWIPE);
+          setIsOpen(true);
+        } else {
+          // Snap closed
+          setOffsetX(0);
+          setIsOpen(false);
+        }
       }
     } else {
-      if (offsetX < -35) {
-        // Swiped left -> open
-        setOffsetX(-MAX_SWIPE);
-        setIsOpen(true);
-      } else {
-        // Rebound -> close
-        setOffsetX(0);
-        setIsOpen(false);
-      }
+      // Revert to stable open/closed offset if was vertical scroll
+      setOffsetX(isOpen ? -MAX_SWIPE : 0);
     }
   };
 
+  const handleTouchCancel = () => {
+    setIsSwiping(false);
+    isDraggingRef.current = false;
+    touchMovedHorizontallyRef.current = false;
+    setOffsetX(isOpen ? -MAX_SWIPE : 0);
+  };
+
   const handleCardClick = () => {
-    // Avoid double firing if touchEnd already triggered onSelect within 400ms
-    if (Date.now() - lastTapHandledRef.current < 400) {
-      return;
-    }
-    if (maxDragDistRef.current > 10) {
+    if (isDraggingRef.current || touchMovedHorizontallyRef.current) {
       return;
     }
     if (isOpen) {
@@ -145,8 +143,8 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     }
   };
 
-  const closeSwipe = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const closeSwipe = (e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) e.stopPropagation();
     setOffsetX(0);
     setIsOpen(false);
   };
@@ -168,6 +166,11 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
             closeSwipe(e);
             onEdit(expense);
           }}
+          onTouchEnd={(e) => {
+            e.stopPropagation();
+            closeSwipe(e);
+            onEdit(expense);
+          }}
           className="flex flex-col items-center justify-center w-14 h-12 rounded-xl bg-[#3584e4] text-white shadow-sm active:scale-95 transition-transform cursor-pointer"
           title="Editar Despesa"
         >
@@ -178,6 +181,11 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
         <button
           type="button"
           onClick={(e) => {
+            e.stopPropagation();
+            closeSwipe(e);
+            onDelete(expense);
+          }}
+          onTouchEnd={(e) => {
             e.stopPropagation();
             closeSwipe(e);
             onDelete(expense);
@@ -199,6 +207,7 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
         onClick={handleCardClick}
         className="relative z-10 p-3.5 bg-white dark:bg-[#282828] border-b border-black/5 dark:border-white/5 flex items-center justify-between gap-3 cursor-pointer transition-colors touch-pan-y hover:bg-black/[0.01] dark:hover:bg-white/[0.02] active:bg-black/[0.03] dark:active:bg-white/[0.04]"
       >
@@ -264,7 +273,6 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            lastTapHandledRef.current = Date.now();
             if (isOpen) {
               setOffsetX(0);
               setIsOpen(false);
@@ -273,11 +281,21 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
               setIsOpen(true);
             }
           }}
-          className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-all cursor-pointer"
+          onTouchEnd={(e) => {
+            e.stopPropagation();
+            if (isOpen) {
+              setOffsetX(0);
+              setIsOpen(false);
+            } else {
+              setOffsetX(-MAX_SWIPE);
+              setIsOpen(true);
+            }
+          }}
+          className="p-2 -mr-1 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-all cursor-pointer flex items-center justify-center"
           title={isOpen ? "Fechar ações" : "Abrir ações (Editar/Excluir)"}
         >
           <ChevronRight 
-            size={16} 
+            size={18} 
             className={`transition-transform duration-200 ${isOpen ? 'rotate-180 text-[#3584e4]' : ''}`} 
           />
         </button>
