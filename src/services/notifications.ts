@@ -1,5 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import { getCompanies, type CompanyRecord } from './supabase';
+import { getCompanies, getExpenses, type CompanyRecord, type ExpenseRecord } from './supabase';
 
 export interface RawBankNotification {
   id: string;
@@ -26,7 +26,11 @@ export interface ParsedBankExpense {
 
 interface FinanteNotificationsPlugin {
   isPermissionGranted(): Promise<{ granted: boolean }>;
+  isPostNotificationsGranted(): Promise<{ granted: boolean }>;
+  requestPostNotificationsPermission(): Promise<{ granted: boolean }>;
   openPermissionSettings(): Promise<void>;
+  openAppDetailsSettings(): Promise<void>;
+  sendDueReminder(options: { id?: number; title: string; body: string }): Promise<{ success: boolean }>;
   getPendingNotifications(options?: { clear?: boolean }): Promise<{ notifications: RawBankNotification[] }>;
   clearPendingNotifications(): Promise<void>;
   addSimulatedNotification(options?: { packageName?: string; title?: string; text?: string }): Promise<{ success: boolean }>;
@@ -55,12 +59,12 @@ const BANK_MAP: Record<string, string> = {
 };
 
 const COMMON_CATEGORY_KEYWORDS: Record<string, string[]> = {
-  'Alimentação': ['ifood', 'rappi', 'restaurante', 'mercado', 'supermercado', 'padaria', 'lanchonete', 'burger', 'pizza', 'acougue', 'hortifruti', 'atacadao', 'carrefour', 'pao de acucar'],
+  'Alimentação': ['ifood', 'rappi', 'restaurante', 'mercado', 'supermercado', 'padaria', 'lanchonete', 'burger', 'pizza', 'acougue', 'hortifruti', 'atacadao', 'carrefour', 'pao de acucar', 'shopee'],
   'Transporte': ['uber', '99app', '99 tecnologia', 'táxi', 'taxi', 'estacionamento', 'sem parar', 'veloe', 'pedagio'],
   'Combustível': ['posto', 'ipiranga', 'shell', 'petrobras', 'br distribuidora', 'combustivel', 'gasolina', 'etanol'],
   'Saúde': ['farmacia', 'drogaria', 'drogasil', 'raia', 'pague menos', 'panvel', 'hospital', 'laboratorio', 'clinica', 'consulta', 'otica'],
   'Lazer': ['cinema', 'netflix', 'spotify', 'prime video', 'hbomax', 'max', 'steam', 'playstation', 'ingresso', 'show', 'teatro'],
-  'Moradia': ['enel', 'cpfl', 'sabesp', 'sanepar', 'condominio', 'aluguel', 'energia', 'agua', 'luz', 'gas'],
+  'Moradia': ['enel', 'cpfl', 'sabesp', 'sanepar', 'condominio', 'condomínio', 'aluguel', 'energia', 'agua', 'luz', 'gas'],
   'Educação': ['escola', 'faculdade', 'curso', 'udemy', 'livraria', 'livros']
 };
 
@@ -124,7 +128,6 @@ export const parseBankNotification = (
 
   // Tentativa B: Expressões regulares comuns em notificações bancárias brasileiras
   if (!establishment) {
-    // "em NOME_ESTABELECIMENTO", "no NOME_ESTABELECIMENTO", "para NOME_DESTINO", "na NOME_LOJA"
     const prepMatches = [
       /(?:em|no|na|para|a)\s+([A-Za-z0-9À-ÿ\s\.\-_&']{2,35}?)(?:\s+(?:no|na|via|com|em|\.|\,|aprovad|com sucesso|\$|$))/i,
       /(?:compra\s+(?:aprovada\s+)?(?:de\s+R\$[0-9,\.]+\s+)?(?:em|no|na)\s+)([A-Za-z0-9À-ÿ\s\.\-_&']{2,35})/i,
@@ -135,7 +138,6 @@ export const parseBankNotification = (
       const m = fullText.match(rx);
       if (m && m[1]) {
         let clean = m[1].trim();
-        // Remove ruídos comuns
         clean = clean.replace(/^(um|uma|o|a|os|as)\s+/i, '');
         clean = clean.replace(/\s+(cart[aã]o|cr[eé]dito|d[eé]bito|pix|reais|valor|final).*$/i, '');
         if (clean.length >= 2 && !clean.toLowerCase().includes('compra')) {
@@ -196,12 +198,115 @@ export const notificationListenerService = {
     }
   },
 
+  isPostNotificationsGranted: async (): Promise<boolean> => {
+    if (!notificationListenerService.isSupported()) return true;
+    try {
+      const res = await FinanteNotifications.isPostNotificationsGranted();
+      return !!res?.granted;
+    } catch (err) {
+      console.warn('Erro ao verificar permissão POST_NOTIFICATIONS:', err);
+      return true;
+    }
+  },
+
+  requestPostNotificationsPermission: async (): Promise<boolean> => {
+    if (!notificationListenerService.isSupported()) return true;
+    try {
+      const res = await FinanteNotifications.requestPostNotificationsPermission();
+      return !!res?.granted;
+    } catch (err) {
+      console.error('Erro ao pedir permissão POST_NOTIFICATIONS:', err);
+      return false;
+    }
+  },
+
   requestPermission: async (): Promise<void> => {
     if (!notificationListenerService.isSupported()) return;
     try {
       await FinanteNotifications.openPermissionSettings();
     } catch (err) {
       console.error('Erro ao abrir configurações de notificação:', err);
+    }
+  },
+
+  openAppDetailsSettings: async (): Promise<void> => {
+    if (!notificationListenerService.isSupported()) return;
+    try {
+      await FinanteNotifications.openAppDetailsSettings();
+    } catch (err) {
+      console.error('Erro ao abrir detalhes do app:', err);
+    }
+  },
+
+  sendDueReminder: async (options: { id?: number; title: string; body: string }): Promise<void> => {
+    if (!notificationListenerService.isSupported()) {
+      // No navegador, se suportado Notification API:
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(options.title, { body: options.body });
+      }
+      return;
+    }
+
+    try {
+      await FinanteNotifications.sendDueReminder({
+        id: options.id || Math.floor(Math.random() * 100000),
+        title: options.title,
+        body: options.body
+      });
+    } catch (err) {
+      console.warn('Falha ao disparar lembrete de vencimento nativo:', err);
+    }
+  },
+
+  checkAndNotifyDueExpenses: async (passedExpenses?: ExpenseRecord[]): Promise<number> => {
+    try {
+      const expenses = passedExpenses || await getExpenses();
+      if (!expenses || expenses.length === 0) return 0;
+
+      const today = new Date().toISOString().split('T')[0];
+      const alertedStorageKey = `finante_notified_due_${today}`;
+      const alertedIds: number[] = JSON.parse(localStorage.getItem(alertedStorageKey) || '[]');
+      const alertedSet = new Set(alertedIds);
+
+      let countNotified = 0;
+
+      for (const exp of expenses) {
+        const amount = Number(exp.amount || 0);
+        const paid = Number(exp.paid_amount || 0);
+        const isPaid = exp.status === 'paid' || (amount - paid) <= 0;
+
+        if (isPaid || !exp.due_date) continue;
+
+        const dueDate = exp.due_date.split('T')[0];
+
+        // Se vence hoje ou está vencida
+        if (dueDate <= today && exp.id && !alertedSet.has(exp.id)) {
+          const balance = amount - paid;
+          const formattedVal = balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          const isOverdue = dueDate < today;
+
+          const title = isOverdue 
+            ? `🚨 Finante: Conta Vencida!` 
+            : `⚠️ Finante: Conta Vencendo Hoje!`;
+
+          const body = `${exp.company || exp.description}: ${formattedVal} (${isOverdue ? 'Atrasada' : 'Vence hoje'}). Toque para pagar.`;
+
+          await notificationListenerService.sendDueReminder({
+            id: Number(exp.id),
+            title,
+            body
+          });
+
+          alertedSet.add(exp.id);
+          countNotified++;
+        }
+      }
+
+      localStorage.setItem(alertedStorageKey, JSON.stringify(Array.from(alertedSet)));
+      return countNotified;
+    } catch (err) {
+      console.warn('Erro ao verificar vencimentos do dia:', err);
+      return 0;
     }
   },
 
@@ -240,7 +345,6 @@ export const notificationListenerService = {
 
   addSimulatedNotification: async (sim?: { packageName?: string; title?: string; text?: string }): Promise<void> => {
     if (!notificationListenerService.isSupported()) {
-      // No modo web/desktop, salva em localStorage para testes manuais
       const simItem: RawBankNotification = {
         id: 'sim_web_' + Date.now(),
         packageName: sim?.packageName || 'com.nu.production',
@@ -257,7 +361,7 @@ export const notificationListenerService = {
       await FinanteNotifications.addSimulatedNotification({
         packageName: sim?.packageName || 'com.nu.production',
         title: sim?.title || 'Nubank',
-        text: sim?.text || 'Compra aprovada de R$ 38,50 em Padaria Estrela no débito.'
+        text: sim?.text || 'Compra aprovada no Nubank de R$ 45,90 no Supermercado Extra.'
       });
     } catch (err) {
       console.error('Erro ao simular notificação:', err);

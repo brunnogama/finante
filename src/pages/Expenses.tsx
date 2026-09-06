@@ -53,6 +53,7 @@ import { NegotiateExpensesModal } from '../components/NegotiateExpensesModal';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { DatePicker } from '../components/DatePicker';
 import { PortalDropdown } from '../components/PortalDropdown';
+import { useLocation } from 'react-router-dom';
 import { SwipeableExpenseItem } from '../components/SwipeableExpenseItem';
 import { useDeviceType } from '../hooks/useDeviceType';
 
@@ -79,6 +80,8 @@ export const Expenses: React.FC = () => {
   const monthDropdownRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const companyInputRef = useRef<HTMLDivElement>(null);
+
+  const location = useLocation();
 
   // Modal States
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -176,6 +179,16 @@ export const Expenses: React.FC = () => {
       window.removeEventListener('finante_refresh_expenses', handleRefresh);
     };
   }, []);
+
+  useEffect(() => {
+    if (location.state?.editExpenseId && expenses.length > 0) {
+      const exp = expenses.find(e => e.id === location.state.editExpenseId);
+      if (exp) {
+        handleOpenEditModal(exp);
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, expenses]);
 
   // Close any open modal on Escape key press
   useEffect(() => {
@@ -946,15 +959,15 @@ export const Expenses: React.FC = () => {
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
               stats.remainingAfterAllExpenses >= 0
                 ? 'bg-[#2ec27e]/10 dark:bg-[#2ec27e]/20 text-[#2ec27e]'
-                : 'bg-[#e01b24]/10 dark:bg-[#e01b24]/20 text-[#e01b24]'
+                : 'bg-rose-500/15 dark:bg-rose-500/25 text-rose-600 dark:text-rose-400'
             }`}>
               <PiggyBank size={15} strokeWidth={2.5} />
             </div>
           </div>
           <div className={`text-xl sm:text-2xl font-bold tracking-tight truncate min-w-0 ${
             stats.remainingAfterAllExpenses >= 0 
-              ? 'text-[#2ec27e]' 
-              : 'text-[#e01b24]'
+              ? 'text-zinc-900 dark:text-white' 
+              : 'text-rose-600 dark:text-rose-400'
           }`} title={formatCurrency(stats.remainingAfterAllExpenses)}>
             {stats.remainingAfterAllExpenses >= 0 ? '+' : ''}{formatCurrency(stats.remainingAfterAllExpenses)}
           </div>
@@ -1577,7 +1590,7 @@ export const Expenses: React.FC = () => {
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
                     Restante
                   </span>
-                  <span className="text-sm md:text-base font-bold tabular-nums text-[#e01b24] mt-0.5 block">
+                  <span className="text-sm md:text-base font-extrabold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5 block">
                     {(() => {
                       const amount = Number(selectedExpense.amount || 0);
                       const paid = Number(selectedExpense.paid_amount || 0);

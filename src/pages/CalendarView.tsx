@@ -8,9 +8,15 @@ import {
   X,
   Plus,
   TrendingUp,
-  Wallet
+  Wallet,
+  Edit2,
+  Trash2,
+  CheckCircle2,
+  CreditCard,
+  Calendar,
+  Check
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   format, 
   startOfMonth, 
@@ -23,15 +29,28 @@ import {
   endOfWeek 
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getExpenses, getIncomes, supabase, type ExpenseRecord, type IncomeRecord } from '../services/supabase';
+import { 
+  getExpenses, 
+  getIncomes, 
+  deleteExpense, 
+  updateExpense, 
+  supabase, 
+  type ExpenseRecord, 
+  type IncomeRecord 
+} from '../services/supabase';
 import { CategoryIcon } from '../components/CategoryIcon';
+import { SwipeableExpenseItem } from '../components/SwipeableExpenseItem';
 
 export const CalendarView: React.FC = () => {
+  const navigate = useNavigate();
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [incomes, setIncomes] = useState<IncomeRecord[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedExpense, setSelectedExpense] = useState<ExpenseRecord | null>(null);
+  const [deleteConfirmExpense, setDeleteConfirmExpense] = useState<ExpenseRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -42,8 +61,14 @@ export const CalendarView: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'incomes' }, () => fetchData())
       .subscribe();
 
+    const handleRefresh = () => {
+      fetchData();
+    };
+    window.addEventListener('finante_refresh_expenses', handleRefresh);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('finante_refresh_expenses', handleRefresh);
     };
   }, []);
 
@@ -69,6 +94,69 @@ export const CalendarView: React.FC = () => {
     const today = new Date();
     setCurrentDate(today);
     setSelectedDay(today);
+  };
+
+  const formatDateBR = (dateStr: string) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
+  const getDueDateStatus = (dueDateStr: string, isPaid: boolean) => {
+    if (isPaid) return { label: 'Quitada', color: 'text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-500/20' };
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(dueDateStr + 'T00:00:00');
+    
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { label: `Atrasada (${Math.abs(diffDays)}d)`, color: 'text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-500/20' };
+    if (diffDays === 0) return { label: 'Vence Hoje', color: 'text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-500/20' };
+    if (diffDays === 1) return { label: 'Vence Amanhã', color: 'text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-500/20' };
+    return { label: `Em ${diffDays} dias`, color: 'text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800' };
+  };
+
+  const handleQuickPayFull = async (expense: ExpenseRecord) => {
+    if (!expense.id) return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await updateExpense(expense.id, {
+        paid_amount: expense.amount,
+        paid_date: today,
+        status: 'paid'
+      });
+      setSelectedExpense(null);
+      await fetchData();
+    } catch (err) {
+      console.error('Erro ao quitar despesa:', err);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmExpense?.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteExpense(deleteConfirmExpense.id);
+      setDeleteConfirmExpense(null);
+      if (selectedExpense?.id === deleteConfirmExpense.id) {
+        setSelectedExpense(null);
+      }
+      await fetchData();
+    } catch (err) {
+      console.error('Erro ao excluir despesa:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEditExpense = (expense: ExpenseRecord) => {
+    setSelectedExpense(null);
+    navigate('/expenses', { state: { editExpenseId: expense.id } });
   };
 
   // Calendar calculations
@@ -99,64 +187,55 @@ export const CalendarView: React.FC = () => {
         const d = new Date(e.due_date + 'T00:00:00');
         return !isNaN(d.getTime()) && isSameMonth(d, monthStart);
       })
-      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      .sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
   }, [expenses, monthStart]);
 
   // Current month incomes
   const currentMonthIncomes = useMemo(() => {
-    return incomes
-      .filter(i => {
-        if (!i.date) return false;
-        const d = new Date(i.date + 'T00:00:00');
-        return !isNaN(d.getTime()) && isSameMonth(d, monthStart);
-      });
+    return incomes.filter(i => {
+      if (!i.date) return false;
+      const d = new Date(i.date + 'T00:00:00');
+      return !isNaN(d.getTime()) && isSameMonth(d, monthStart);
+    });
   }, [incomes, monthStart]);
 
-  // Current month statistics
+  // Monthly stats
   const stats = useMemo(() => {
-    const totalExpenses = currentMonthExpenses.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    const totalIncomes = currentMonthIncomes.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    const projectedBalance = totalIncomes - totalExpenses;
-    
-    const paidExpenses = currentMonthExpenses.filter(e => 
-      e.status === 'paid' || (e.paid_amount !== undefined && Number(e.paid_amount) >= Number(e.amount))
-    );
-    const totalPaid = paidExpenses.reduce((acc, curr) => 
-      acc + (curr.paid_amount !== undefined ? Number(curr.paid_amount) : Number(curr.amount)), 0
-    );
+    const totalExpenses = currentMonthExpenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
+    const totalPaid = currentMonthExpenses.reduce((acc, e) => acc + Number(e.paid_amount || 0), 0);
+    const totalPending = Math.max(0, totalExpenses - totalPaid);
+    const paidCount = currentMonthExpenses.filter(e => {
+      const amt = Number(e.amount || 0);
+      const paid = Number(e.paid_amount || 0);
+      return e.status === 'paid' || (amt > 0 && (amt - paid) <= 0);
+    }).length;
 
-    const pendingExpenses = currentMonthExpenses.filter(e => 
-      e.status !== 'paid' && (!e.paid_amount || Number(e.paid_amount) < Number(e.amount))
-    );
-    const totalPending = pendingExpenses.reduce((acc, curr) => {
-      const remaining = Number(curr.amount) - (Number(curr.paid_amount) || 0);
-      return acc + Math.max(0, remaining);
-    }, 0);
+    const totalIncomes = currentMonthIncomes.reduce((acc, i) => acc + Number(i.amount || 0), 0);
+    const projectedBalance = totalIncomes - totalExpenses;
 
     return {
       totalExpenses,
-      totalIncomes,
-      projectedBalance,
       totalPaid,
       totalPending,
       count: currentMonthExpenses.length,
-      paidCount: paidExpenses.length,
-      pendingCount: pendingExpenses.length,
+      paidCount,
+      totalIncomes,
+      projectedBalance
     };
   }, [currentMonthExpenses, currentMonthIncomes]);
 
   // Filtered expenses for side panel
   const displayedExpenses = useMemo(() => {
-    if (!selectedDay) return currentMonthExpenses;
-    const dayKey = format(selectedDay, 'yyyy-MM-dd');
-    return expensesByDate[dayKey] || [];
-  }, [selectedDay, currentMonthExpenses, expensesByDate]);
+    if (selectedDay) {
+      const key = format(selectedDay, 'yyyy-MM-dd');
+      return expensesByDate[key] || [];
+    }
+    return currentMonthExpenses;
+  }, [selectedDay, expensesByDate, currentMonthExpenses]);
 
   const formatCurrency = (val: number) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
-
-  const isCurrentMonthActive = isSameMonth(currentDate, new Date());
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-fadeIn pb-24 md:pb-8">
@@ -164,56 +243,53 @@ export const CalendarView: React.FC = () => {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl bg-[#3584e4]/10 text-[#3584e4] flex items-center justify-center">
-              <CalendarIcon size={20} strokeWidth={2.3} />
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white capitalize">
+              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            </h1>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-400">
+              Calendário
             </span>
-            Calendário
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Visão mensal de vencimentos e controle de despesas por data
+          </div>
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Planejamento visual de vencimentos de contas e previsão de despesas do mês
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          {/* Month Navigation Pill */}
-          <div className="flex items-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-xl p-1 shadow-xs">
+        {/* Action Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={goToToday}
+            className="adw-btn text-xs font-semibold px-3 py-1.5 cursor-pointer"
+          >
+            Hoje
+          </button>
+
+          <div className="inline-flex rounded-xl bg-black/5 dark:bg-white/5 p-1 border border-black/5 dark:border-white/5">
             <button
               type="button"
               onClick={prevMonth}
-              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
-              title="Mês anterior"
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+              title="Mês Anterior"
             >
               <ChevronLeft size={18} />
             </button>
-            <span className="font-bold text-xs sm:text-sm text-zinc-800 dark:text-zinc-100 px-3 min-w-[130px] sm:min-w-[150px] text-center capitalize select-none">
-              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-            </span>
             <button
               type="button"
               onClick={nextMonth}
-              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
-              title="Próximo mês"
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+              title="Próximo Mês"
             >
               <ChevronRight size={18} />
             </button>
           </div>
 
-          {!isCurrentMonthActive && (
-            <button
-              type="button"
-              onClick={goToToday}
-              className="adw-btn text-xs font-semibold px-3 py-2 cursor-pointer"
-            >
-              Hoje
-            </button>
-          )}
-
           <Link
             to="/expenses"
-            className="adw-btn suggested-action text-xs sm:text-sm inline-flex items-center gap-1.5 px-3.5 py-2 cursor-pointer"
+            className="adw-btn adw-btn-primary text-xs font-semibold px-3 py-1.5 inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <Plus size={16} strokeWidth={2.5} />
+            <Plus size={15} strokeWidth={2.5} />
             <span>Nova Despesa</span>
           </Link>
         </div>
@@ -227,11 +303,11 @@ export const CalendarView: React.FC = () => {
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
               Despesas
             </span>
-            <div className="w-8 h-8 rounded-xl bg-[#e01b24]/10 text-[#e01b24] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <ArrowDownRight size={17} strokeWidth={2.5} />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-[#e01b24] tracking-tight truncate min-w-0" title={formatCurrency(stats.totalExpenses)}>
+          <div className="text-xl sm:text-2xl xl:text-3xl font-bold text-rose-600 dark:text-rose-400 tracking-tight truncate min-w-0" title={formatCurrency(stats.totalExpenses)}>
             {formatCurrency(stats.totalExpenses)}
           </div>
           <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
@@ -253,20 +329,20 @@ export const CalendarView: React.FC = () => {
             {formatCurrency(stats.totalIncomes)}
           </div>
           <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
-            {currentMonthIncomes.length === 1 ? '1 entrada' : `${currentMonthIncomes.length} entradas`}
+            Previstas no mês
           </div>
         </div>
 
-        {/* Sobra Prevista */}
+        {/* Saldo Projetado */}
         <div className="adw-card p-4 sm:p-5 relative overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0">
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
-              Sobra Prevista
+              Saldo Projetado
             </span>
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
               stats.projectedBalance >= 0 
                 ? 'bg-[#3584e4]/10 text-[#3584e4]' 
-                : 'bg-[#e01b24]/10 text-[#e01b24]'
+                : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
             }`}>
               <Wallet size={17} strokeWidth={2.5} />
             </div>
@@ -274,20 +350,20 @@ export const CalendarView: React.FC = () => {
           <div className={`text-xl sm:text-2xl xl:text-3xl font-bold tracking-tight truncate min-w-0 ${
             stats.projectedBalance >= 0 
               ? 'text-zinc-900 dark:text-white' 
-              : 'text-[#e01b24]'
+              : 'text-rose-600 dark:text-rose-400'
           }`} title={formatCurrency(stats.projectedBalance)}>
             {formatCurrency(stats.projectedBalance)}
           </div>
           <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 truncate">
-            {stats.projectedBalance >= 0 ? 'Balanço positivo' : 'Atenção ao saldo'}
+            {stats.projectedBalance >= 0 ? 'Superávit estimado' : 'Déficit estimado'}
           </div>
         </div>
 
-        {/* A Pagar / Pendente */}
+        {/* A Pagar (Pendente) */}
         <div className="adw-card p-4 sm:p-5 relative overflow-hidden min-w-0">
           <div className="flex items-center justify-between mb-2 min-w-0">
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate">
-              A Pagar
+              A Pagar Restante
             </span>
             <div className="w-8 h-8 rounded-xl bg-[#e5a50a]/10 text-[#e5a50a] flex items-center justify-center shrink-0">
               <Clock size={17} strokeWidth={2.5} />
@@ -302,81 +378,88 @@ export const CalendarView: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Grid: Calendar + Side List */}
+      {/* Main Grid: Calendar (Col 8) + Side Panel (Col 4) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Calendar Card (Col 8) */}
-        <div className="lg:col-span-8 adw-card p-4 sm:p-6">
-          {/* Days of Week Header */}
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-3 text-center text-[11px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-              <div key={day} className="py-1">{day}</div>
+        <div className="lg:col-span-8 adw-card p-4 sm:p-6 flex flex-col">
+          
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => (
+              <div 
+                key={day} 
+                className={`text-center text-xs font-semibold py-1.5 ${
+                  idx === 0 || idx === 6 ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-600 dark:text-zinc-300'
+                }`}
+              >
+                {day}
+              </div>
             ))}
           </div>
 
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+          {/* Calendar Day Cells */}
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {calendarDays.map((day) => {
-              const dayKey = format(day, 'yyyy-MM-dd');
+              const dateKey = format(day, 'yyyy-MM-dd');
+              const dayExpenses = expensesByDate[dateKey] || [];
+              const hasExpenses = dayExpenses.length > 0;
               const isCurrentMonth = isSameMonth(day, monthStart);
-              const isDayToday = isToday(day);
-              const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
-              
-              const dayExpList = expensesByDate[dayKey] || [];
-              const dayTotalSpent = dayExpList.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-              const allDayPaid = dayExpList.length > 0 && dayExpList.every(e => 
-                e.status === 'paid' || (e.paid_amount !== undefined && Number(e.paid_amount) >= Number(e.amount))
-              );
+              const isSelected = selectedDay && isSameDay(day, selectedDay);
+              const isCurrentDay = isToday(day);
+
+              const dayTotal = dayExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+              const allDayPaid = dayExpenses.every(e => {
+                const amt = Number(e.amount || 0);
+                const pd = Number(e.paid_amount || 0);
+                return e.status === 'paid' || (amt > 0 && (amt - pd) <= 0);
+              });
 
               return (
                 <button
-                  key={day.toString()}
+                  key={dateKey}
                   type="button"
-                  onClick={() => {
-                    if (isSelected) {
-                      setSelectedDay(null);
-                    } else {
-                      setSelectedDay(day);
-                    }
-                  }}
-                  className={`min-h-[78px] sm:min-h-[92px] p-1.5 sm:p-2 rounded-xl flex flex-col items-center justify-between text-left transition-all duration-150 cursor-pointer relative overflow-hidden ${
-                    isSelected
-                      ? 'ring-2 ring-[#3584e4] bg-[#3584e4]/15 border-transparent shadow-xs'
-                      : isCurrentMonth
-                        ? 'bg-black/[0.02] dark:bg-white/[0.04] border border-black/5 dark:border-white/5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:border-black/10 dark:hover:border-white/10'
-                        : 'opacity-25 bg-transparent border border-transparent cursor-default'
+                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  className={`min-h-[70px] sm:min-h-[92px] p-1.5 sm:p-2 rounded-xl text-left transition-all relative flex flex-col justify-between border cursor-pointer ${
+                    !isCurrentMonth 
+                      ? 'opacity-30 bg-transparent border-transparent hover:opacity-50' 
+                      : isSelected
+                        ? 'bg-[#3584e4]/10 border-[#3584e4] shadow-xs'
+                        : isCurrentDay
+                          ? 'bg-black/[0.04] dark:bg-white/[0.06] border-black/10 dark:border-white/10'
+                          : 'bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] border-black/5 dark:border-white/5'
                   }`}
                 >
-                  {/* Day Number Header */}
-                  <div className="w-full flex items-center justify-between">
-                    <span className={`text-xs font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center transition-all ${
-                      isDayToday
-                        ? 'bg-[#3584e4] text-white shadow-xs'
-                        : isSelected
-                          ? 'text-[#3584e4] font-extrabold'
-                          : isCurrentMonth
-                            ? 'text-zinc-700 dark:text-zinc-300'
-                            : 'text-zinc-400 dark:text-zinc-600'
+                  {/* Day Number + Badges */}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
+                      isCurrentDay 
+                        ? 'bg-[#3584e4] text-white' 
+                        : isSelected 
+                          ? 'text-[#3584e4]' 
+                          : 'text-zinc-700 dark:text-zinc-300'
                     }`}>
                       {format(day, 'd')}
                     </span>
 
-                    {/* Status Dot */}
-                    {dayExpList.length > 0 && (
-                      <span className={`w-2 h-2 rounded-full ${allDayPaid ? 'bg-[#2ec27e]' : 'bg-[#e01b24]'}`} />
+                    {hasExpenses && (
+                      <span className={`w-2 h-2 rounded-full ${allDayPaid ? 'bg-[#2ec27e]' : 'bg-rose-500'}`} />
                     )}
                   </div>
 
-                  {/* Expense Amount Pill */}
-                  {dayTotalSpent > 0 && isCurrentMonth && (
-                    <div className={`w-full mt-auto text-center rounded-lg px-1 py-0.5 text-[10px] sm:text-[11px] font-bold truncate transition-colors ${
-                      allDayPaid
-                        ? 'bg-[#2ec27e]/15 text-[#2ec27e] border border-[#2ec27e]/20'
-                        : 'bg-[#e01b24]/15 text-[#e01b24] border border-[#e01b24]/20'
-                    }`}>
-                      {dayTotalSpent < 1000 
-                        ? `R$ ${dayTotalSpent.toFixed(0)}` 
-                        : `R$ ${(dayTotalSpent / 1000).toFixed(1)}k`}
+                  {/* Day Amount summary */}
+                  {hasExpenses && (
+                    <div className="mt-auto pt-1">
+                      <div className={`text-[10px] sm:text-xs font-bold truncate rounded px-1 py-0.5 ${
+                        allDayPaid 
+                          ? 'bg-[#2ec27e]/15 text-[#2ec27e] border border-[#2ec27e]/20' 
+                          : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                      }`}>
+                        {formatCurrency(dayTotal)}
+                      </div>
+                      <div className="text-[9px] text-zinc-400 dark:text-zinc-500 truncate hidden sm:block mt-0.5">
+                        {dayExpenses.length} {dayExpenses.length === 1 ? 'conta' : 'contas'}
+                      </div>
                     </div>
                   )}
                 </button>
@@ -386,10 +469,10 @@ export const CalendarView: React.FC = () => {
         </div>
 
         {/* Side Panel: Vencimentos do Mês ou Dia Selecionado (Col 4) */}
-        <div className="lg:col-span-4 adw-card p-5 flex flex-col max-h-[620px]">
+        <div className="lg:col-span-4 adw-card p-4 sm:p-5 flex flex-col max-h-[660px]">
           
           {/* Panel Header */}
-          <div className="flex items-center justify-between pb-4 mb-3 border-b border-black/5 dark:border-white/5">
+          <div className="flex items-center justify-between pb-3 mb-2 border-b border-black/5 dark:border-white/5">
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-white">
                 {selectedDay ? format(selectedDay, "dd 'de' MMMM", { locale: ptBR }) : 'Despesas do Mês'}
@@ -413,8 +496,8 @@ export const CalendarView: React.FC = () => {
             )}
           </div>
 
-          {/* List Area */}
-          <div className="space-y-2 overflow-y-auto pr-1 flex-1">
+          {/* List Area with Swipeable Items */}
+          <div className="space-y-1.5 overflow-y-auto pr-1 flex-1">
             {displayedExpenses.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center text-zinc-400 dark:text-zinc-500">
                 <CalendarIcon size={36} strokeWidth={1.5} className="mb-2 opacity-40" />
@@ -425,40 +508,24 @@ export const CalendarView: React.FC = () => {
               </div>
             ) : (
               displayedExpenses.map((expense) => {
-                const isPaid = expense.status === 'paid' || 
-                  (expense.paid_amount !== undefined && Number(expense.paid_amount) >= Number(expense.amount));
+                const amount = Number(expense.amount || 0);
+                const paid = Number(expense.paid_amount || 0);
+                const isPaid = expense.status === 'paid' || ((amount - paid) <= 0 && amount > 0);
+                const dueInfo = getDueDateStatus(expense.due_date, isPaid);
+                const isOverduePast = !isPaid && !!expense.due_date && expense.due_date.split('T')[0] < new Date().toISOString().split('T')[0];
 
                 return (
-                  <div
+                  <SwipeableExpenseItem
                     key={expense.id}
-                    className="bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-black/5 dark:border-white/5 rounded-xl p-3 flex items-center justify-between transition-all gap-3"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <CategoryIcon type={expense.type} size={16} />
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white truncate">
-                          {expense.description || expense.company}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                            {format(new Date(expense.due_date + 'T00:00:00'), "dd 'de' MMM", { locale: ptBR })}
-                          </span>
-                          <span className="text-[10px] text-zinc-300 dark:text-zinc-600">•</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
-                            isPaid 
-                              ? 'bg-[#2ec27e]/15 text-[#2ec27e]' 
-                              : 'bg-[#e5a50a]/15 text-[#e5a50a]'
-                          }`}>
-                            {isPaid ? 'Pago' : 'A Pagar'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <span className="font-bold text-xs sm:text-sm text-[#e01b24] tabular-nums shrink-0">
-                      {formatCurrency(expense.amount)}
-                    </span>
-                  </div>
+                    expense={expense}
+                    dueInfo={dueInfo}
+                    isOverduePast={isOverduePast}
+                    formatDateBR={formatDateBR}
+                    formatCurrency={formatCurrency}
+                    onSelect={(exp) => setSelectedExpense(exp)}
+                    onEdit={(exp) => handleEditExpense(exp)}
+                    onDelete={(exp) => setDeleteConfirmExpense(exp)}
+                  />
                 );
               })
             )}
@@ -466,6 +533,205 @@ export const CalendarView: React.FC = () => {
         </div>
 
       </div>
+
+      {/* EXPENSE DETAIL MODAL */}
+      {selectedExpense && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setSelectedExpense(null)}
+        >
+          <div 
+            className="adw-dialog max-w-lg w-full p-6 shadow-2xl animate-scaleIn overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-black/5 dark:border-white/5">
+              <div className="flex items-center gap-3">
+                <CategoryIcon type={selectedExpense.type} size={24} containerClassName="w-11 h-11 rounded-xl shadow-xs" />
+                <div>
+                  <h3 className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white leading-tight">
+                    {selectedExpense.company || selectedExpense.description}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-zinc-600 dark:text-zinc-300">
+                      {selectedExpense.type}
+                    </span>
+                    {(() => {
+                      const amount = Number(selectedExpense.amount || 0);
+                      const paid = Number(selectedExpense.paid_amount || 0);
+                      const isPaid = (amount - paid) <= 0 && amount > 0;
+                      const dueInfo = getDueDateStatus(selectedExpense.due_date, isPaid);
+                      return (
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${dueInfo.color}`}>
+                          {dueInfo.label}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setSelectedExpense(null)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="py-4 space-y-4 overflow-y-auto max-h-[65vh]">
+              
+              {/* Financial Breakdown Grid */}
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
+                    Valor a Pagar
+                  </span>
+                  <span className="text-sm md:text-base font-bold tabular-nums text-zinc-900 dark:text-white mt-0.5 block">
+                    {formatCurrency(Number(selectedExpense.amount || 0))}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
+                    Valor Pago
+                  </span>
+                  <span className="text-sm md:text-base font-bold tabular-nums text-[#2ec27e] mt-0.5 block">
+                    {formatCurrency(Number(selectedExpense.paid_amount || 0))}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">
+                    Restante
+                  </span>
+                  <span className="text-sm md:text-base font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-0.5 block">
+                    {(() => {
+                      const amount = Number(selectedExpense.amount || 0);
+                      const paid = Number(selectedExpense.paid_amount || 0);
+                      const remaining = Math.max(0, amount - paid);
+                      return formatCurrency(remaining);
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Info Rows */}
+              <div className="space-y-2 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
+                  <span className="text-zinc-400">Data de Vencimento:</span>
+                  <span className="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                    <Calendar size={14} className="text-zinc-400" />
+                    {formatDateBR(selectedExpense.due_date)}
+                  </span>
+                </div>
+
+                {selectedExpense.paid_date && Number(selectedExpense.paid_amount || 0) > 0 && (
+                  <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
+                    <span className="text-zinc-400">Data de Pagamento:</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 size={14} />
+                      {formatDateBR(selectedExpense.paid_date)}
+                    </span>
+                  </div>
+                )}
+
+                {selectedExpense.payment_method && (
+                  <div className="flex items-center justify-between py-1.5 border-b border-zinc-100 dark:border-zinc-800">
+                    <span className="text-zinc-400">Meio de Pagamento:</span>
+                    <span className="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                      <CreditCard size={14} className="text-emerald-500" />
+                      {selectedExpense.payment_method}
+                    </span>
+                  </div>
+                )}
+
+                {selectedExpense.notes && (
+                  <div className="p-3 bg-black/[0.02] dark:bg-white/[0.02] rounded-lg border border-black/5 dark:border-white/5">
+                    <span className="text-zinc-400 block mb-1">Observações:</span>
+                    <p className="text-zinc-800 dark:text-zinc-200">{selectedExpense.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-4 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleEditExpense(selectedExpense)}
+                  className="adw-btn text-xs font-semibold px-3 py-1.5 inline-flex items-center gap-1.5"
+                >
+                  <Edit2 size={13} />
+                  <span>Editar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmExpense(selectedExpense)}
+                  className="adw-btn text-xs font-semibold px-3 py-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 inline-flex items-center gap-1.5"
+                >
+                  <Trash2 size={13} />
+                  <span>Excluir</span>
+                </button>
+              </div>
+
+              {((Number(selectedExpense.amount || 0) - Number(selectedExpense.paid_amount || 0)) > 0) && (
+                <button
+                  type="button"
+                  onClick={() => handleQuickPayFull(selectedExpense)}
+                  className="adw-btn adw-btn-primary text-xs font-bold px-4 py-1.5 inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"
+                >
+                  <Check size={14} strokeWidth={3} />
+                  <span>Quitar Despesa</span>
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmExpense && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setDeleteConfirmExpense(null)}
+        >
+          <div 
+            className="adw-dialog max-w-sm w-full p-5 shadow-2xl animate-scaleIn text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-11 h-11 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
+              <Trash2 size={20} />
+            </div>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+              Excluir Despesa?
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-4">
+              Deseja realmente remover "{deleteConfirmExpense.company || deleteConfirmExpense.description}"?
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmExpense(null)}
+                className="adw-btn text-xs font-semibold px-4 py-2 flex-1"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="adw-btn text-xs font-semibold px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white flex-1 disabled:opacity-50"
+              >
+                {isDeleting ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="text-center text-xs text-zinc-400 dark:text-zinc-500 py-2">

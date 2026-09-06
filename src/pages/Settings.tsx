@@ -301,10 +301,7 @@ export const Settings: React.FC = () => {
   };
 
   const handleRequestNotificationPermission = async () => {
-    await notificationListenerService.requestPermission();
-    setTimeout(() => {
-      checkNotificationStatus();
-    }, 1000);
+    window.dispatchEvent(new CustomEvent('finante_open_permission_modal'));
   };
 
   const handleSimulateNotification = async () => {

@@ -61,12 +61,12 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     const absX = Math.abs(diffX);
     const absY = Math.abs(diffY);
 
-    if (absX > 8 || absY > 8) {
+    if (absX > 15 || absY > 15) {
       isDraggingRef.current = true;
     }
 
-    // Only track horizontal swipe when horizontal motion is significant and greater than vertical motion
-    if (absX > absY && absX > 10) {
+    // Only track horizontal swipe when horizontal motion is greater than vertical motion
+    if (absX > absY && absX > 15) {
       touchMovedHorizontallyRef.current = true;
       if (isOpen) {
         const newOffset = -MAX_SWIPE + diffX;
@@ -81,12 +81,15 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     setIsSwiping(false);
     const elapsed = Date.now() - touchStartTimeRef.current;
+    const endX = e.changedTouches[0]?.clientX ?? startXRef.current;
+    const endY = e.changedTouches[0]?.clientY ?? startYRef.current;
+    const totalDist = Math.hypot(endX - startXRef.current, endY - startYRef.current);
 
-    // Direct tap detection: if finger didn't drag significantly and released quickly (< 500ms)
-    if (!isDraggingRef.current && elapsed < 500) {
+    // Direct tap detection: if finger moved less than 20px and released in under 600ms
+    if (totalDist < 20 && elapsed < 600) {
       if (isOpen) {
         setOffsetX(0);
         setIsOpen(false);
@@ -108,7 +111,7 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
           setIsOpen(true);
         }
       } else {
-        if (offsetX < -35) {
+        if (offsetX < -30) {
           // Swiped left -> open
           setOffsetX(-MAX_SWIPE);
           setIsOpen(true);
@@ -132,7 +135,7 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
   };
 
   const handleCardClick = () => {
-    if (isDraggingRef.current || touchMovedHorizontallyRef.current) {
+    if (touchMovedHorizontallyRef.current) {
       return;
     }
     if (isOpen) {
@@ -255,8 +258,8 @@ export const SwipeableExpenseItem: React.FC<SwipeableExpenseItemProps> = ({
             </div>
           ) : (
             <div className="flex flex-col items-end">
-              {/* High-contrast Red Badge for visibility on grey/dark mobile displays */}
-              <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold tabular-nums text-rose-700 dark:text-rose-300 bg-rose-500/15 dark:bg-rose-500/25 border border-rose-500/40 shadow-xs">
+              {/* High-contrast Luminous Badge for visibility on dark/grey displays */}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs sm:text-sm font-black tabular-nums text-rose-600 dark:text-rose-200 bg-rose-500/10 dark:bg-rose-500/30 border border-rose-400/50 dark:border-rose-400/60 shadow-xs tracking-tight">
                 {formatCurrency(balance)}
               </span>
               {paid > 0 && (
