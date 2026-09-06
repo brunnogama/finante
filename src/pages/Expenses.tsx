@@ -77,9 +77,15 @@ export const Expenses: React.FC = () => {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isCompanySuggestionsOpen, setIsCompanySuggestionsOpen] = useState(false);
 
+  // Mobile Dropdown Open States
+  const [isMobileMonthOpen, setIsMobileMonthOpen] = useState(false);
+  const [isMobileCategoryOpen, setIsMobileCategoryOpen] = useState(false);
+
   const monthDropdownRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const companyInputRef = useRef<HTMLDivElement>(null);
+  const mobileMonthDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileCategoryDropdownRef = useRef<HTMLDivElement>(null);
 
   const location = useLocation();
 
@@ -140,6 +146,12 @@ export const Expenses: React.FC = () => {
       }
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
         setIsCategoryDropdownOpen(false);
+      }
+      if (mobileMonthDropdownRef.current && !mobileMonthDropdownRef.current.contains(event.target as Node)) {
+        setIsMobileMonthOpen(false);
+      }
+      if (mobileCategoryDropdownRef.current && !mobileCategoryDropdownRef.current.contains(event.target as Node)) {
+        setIsMobileCategoryOpen(false);
       }
       if (companyInputRef.current && !companyInputRef.current.contains(event.target as Node)) {
         setIsCompanySuggestionsOpen(false);
@@ -863,14 +875,14 @@ export const Expenses: React.FC = () => {
   }, [companies, company]);
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-8">
+    <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-3.5 md:space-y-5 animate-fadeIn pb-24 md:pb-8">
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#e5a50a]/10 dark:bg-[#e5a50a]/20 text-[#e5a50a] flex items-center justify-center shrink-0">
-              <Receipt size={18} strokeWidth={2.3} />
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+            <span className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-[#e5a50a]/10 dark:bg-[#e5a50a]/20 text-[#e5a50a] flex items-center justify-center shrink-0">
+              <Receipt size={17} strokeWidth={2.3} />
             </span>
             Despesas
           </h1>
@@ -879,12 +891,12 @@ export const Expenses: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={handleSync}
             disabled={isSyncing}
-            className="adw-btn"
+            className="adw-btn py-1.5 px-2.5 sm:px-3 text-xs sm:text-sm"
             title="Sincronizar despesas com a nuvem"
           >
             <RefreshCw size={15} className={isSyncing ? 'animate-spin text-[#3584e4]' : ''} />
@@ -894,25 +906,82 @@ export const Expenses: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsNegotiateModalOpen(true)}
-            className="adw-btn"
+            className="adw-btn py-1.5 px-2.5 sm:px-3 text-xs sm:text-sm"
             title="Renegociar contas em aberto e parcelar com juros calculados"
           >
-            <Handshake size={16} strokeWidth={2.2} />
-            <span>Renegociação</span>
+            <Handshake size={15} strokeWidth={2.2} />
+            <span className="text-xs sm:text-sm">Renegociação</span>
           </button>
 
           <button
             onClick={handleOpenNewModal}
-            className="adw-btn suggested-action"
+            className="adw-btn suggested-action py-1.5 px-2.5 sm:px-3 text-xs sm:text-sm"
           >
             <Plus size={16} strokeWidth={2.5} />
-            <span>Nova Despesa</span>
+            <span>Nova</span>
+            <span className="hidden sm:inline">Despesa</span>
           </button>
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {/* Mobile Compact KPI Summary (< md) */}
+      <div className="md:hidden bg-white dark:bg-white/[0.06] rounded-xl p-3 border border-black/10 dark:border-white/10 shadow-xs space-y-2.5">
+        <div className="grid grid-cols-2 gap-3 divide-x divide-black/10 dark:divide-white/10">
+          <div>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Total Despesas
+              </span>
+              <Receipt size={13} className="text-[#e5a50a]" />
+            </div>
+            <div className="text-base font-bold text-zinc-900 dark:text-white tracking-tight truncate" title={formatCurrency(stats.totalExpenses)}>
+              {formatCurrency(stats.totalExpenses)}
+            </div>
+            <div className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">
+              {stats.count} {stats.count === 1 ? 'conta' : 'contas'}
+            </div>
+          </div>
+
+          <div className="pl-3">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Saldo a Pagar
+              </span>
+              {stats.totalBalance > 0 ? (
+                <Clock size={13} className="text-[#e5a50a]" />
+              ) : (
+                <CheckCircle2 size={13} className="text-[#2ec27e]" />
+              )}
+            </div>
+            <div className={`text-base font-bold tracking-tight truncate ${
+              stats.totalBalance > 0 ? 'text-[#e5a50a]' : 'text-[#2ec27e]'
+            }`} title={formatCurrency(stats.totalBalance)}>
+              {formatCurrency(stats.totalBalance)}
+            </div>
+            <div className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate">
+              {stats.totalBalance === 0 ? 'Quitado' : `${formatCurrency(stats.totalPaid)} pago`}
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-xs px-0.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-zinc-400 dark:text-zinc-500 text-[11px]">Receita:</span>
+            <span className="font-semibold text-[#2ec27e] truncate">{formatCurrency(stats.totalIncome)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-zinc-400 dark:text-zinc-500 text-[11px]">Saldo Previsto:</span>
+            <span className={`font-semibold truncate ${
+              stats.remainingAfterAllExpenses >= 0 ? 'text-zinc-800 dark:text-zinc-200' : 'text-rose-600 dark:text-rose-400'
+            }`}>
+              {stats.remainingAfterAllExpenses >= 0 ? '+' : ''}{formatCurrency(stats.remainingAfterAllExpenses)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Summary KPI Cards (>= md) */}
+      <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         
         {/* Card 1: Total Despesas */}
         <div className="bg-white dark:bg-white/[0.06] rounded-xl p-4 sm:p-5 border border-black/10 dark:border-white/10 shadow-xs relative overflow-hidden min-w-0">
@@ -1004,8 +1073,246 @@ export const Expenses: React.FC = () => {
 
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white dark:bg-white/[0.06] rounded-xl p-3 border border-black/10 dark:border-white/10 shadow-xs flex flex-col md:flex-row gap-2.5 items-center justify-between relative z-20">
+      {/* Mobile Filter & Search (< md) */}
+      <div className="md:hidden bg-white dark:bg-white/[0.06] rounded-xl p-2.5 border border-black/10 dark:border-white/10 shadow-xs space-y-2 relative z-20">
+        {/* Linha 1: Campo de Busca + Seletor de Mês Compacto */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg pl-8 pr-7 py-1.5 text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#3584e4]/30"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Month Paginator Compact */}
+          <div className="inline-flex items-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-0.5 shrink-0" ref={mobileMonthDropdownRef}>
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              disabled={selectedMonth === 'all'}
+              className="p-1 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded transition-all disabled:opacity-30 cursor-pointer"
+              title="Mês Anterior"
+            >
+              <ChevronLeft size={14} strokeWidth={2.5} />
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsMobileMonthOpen(!isMobileMonthOpen)}
+                className="flex items-center gap-1 px-1.5 py-1 text-xs font-semibold text-zinc-800 dark:text-zinc-200 cursor-pointer"
+              >
+                <Calendar size={13} className="text-zinc-400 shrink-0" />
+                <span className="truncate max-w-[75px]">
+                  {selectedMonth === 'all' ? 'Todos' : formatMonthShort(selectedMonth)}
+                </span>
+                <ChevronDown size={11} className={`text-zinc-400 transition-transform duration-200 ${isMobileMonthOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isMobileMonthOpen && (
+                <div className="absolute right-0 mt-1.5 w-60 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-100 max-h-72 overflow-y-auto">
+                  <button
+                    onClick={() => {
+                      setSelectedMonth('all');
+                      setIsMobileMonthOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
+                      selectedMonth === 'all' 
+                        ? 'font-bold text-white bg-[#3584e4]' 
+                        : 'text-zinc-700 dark:text-zinc-300'
+                    }`}
+                  >
+                    <span>Todos os Meses</span>
+                    {selectedMonth === 'all' && <Check size={14} className="text-white" />}
+                  </button>
+                  <div className="h-px bg-black/10 dark:bg-white/10 my-1" />
+                  {availableMonths.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        setSelectedMonth(m);
+                        setIsMobileMonthOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 text-xs text-left hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer ${
+                        selectedMonth === m 
+                          ? 'font-bold text-white bg-[#3584e4]' 
+                          : 'text-zinc-700 dark:text-zinc-300'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {m === currentMonthKey && <span className="w-1.5 h-1.5 rounded-full bg-[#3584e4]" />}
+                        {formatMonthLabel(m)}
+                      </span>
+                      {selectedMonth === m && <Check size={14} className="text-white" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              disabled={selectedMonth === 'all'}
+              className="p-1 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded transition-all disabled:opacity-30 cursor-pointer"
+              title="Próximo Mês"
+            >
+              <ChevronRight size={14} strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+
+        {/* Linha 2: Barra horizontal com rolagem suave para chips de filtro */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs">
+          {/* Status Pills */}
+          <div className="inline-flex items-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg p-0.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                statusFilter === 'all'
+                  ? 'bg-white dark:bg-[#383838] text-zinc-950 dark:text-white shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('pending')}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                statusFilter === 'pending'
+                  ? 'bg-white dark:bg-[#383838] text-amber-600 dark:text-amber-400 shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400'
+              }`}
+            >
+              Pendentes
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('partial')}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                statusFilter === 'partial'
+                  ? 'bg-white dark:bg-[#383838] text-orange-600 dark:text-orange-400 shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400'
+              }`}
+            >
+              Parciais
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('paid')}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                statusFilter === 'paid'
+                  ? 'bg-white dark:bg-[#383838] text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400'
+              }`}
+            >
+              Pagas
+            </button>
+          </div>
+
+          {/* Category Dropdown Chip */}
+          <div className="relative shrink-0" ref={mobileCategoryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsMobileCategoryOpen(!isMobileCategoryOpen)}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-medium transition-all cursor-pointer ${
+                selectedCategory !== 'Todas'
+                  ? 'bg-[#3584e4]/15 border-[#3584e4]/40 text-[#3584e4] dark:text-blue-400 font-semibold'
+                  : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-zinc-700 dark:text-zinc-300'
+              }`}
+            >
+              <Tag size={11} className="shrink-0" />
+              <span className="truncate max-w-[85px]">
+                {selectedCategory === 'Todas' ? 'Categoria' : selectedCategory}
+              </span>
+              <ChevronDown size={10} className={`transition-transform duration-200 ${isMobileCategoryOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isMobileCategoryOpen && (
+              <div className="absolute left-0 mt-1.5 w-56 adw-popover bg-white dark:bg-[#383838] border border-black/15 dark:border-white/15 rounded-xl p-1.5 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('Todas');
+                    setIsMobileCategoryOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                    selectedCategory === 'Todas' 
+                      ? 'bg-[#3584e4] text-white font-bold' 
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
+                  }`}
+                >
+                  <span>Todas Categorias</span>
+                  {selectedCategory === 'Todas' && <Check size={14} className="text-white" />}
+                </button>
+                <div className="my-1 border-t border-black/10 dark:border-white/10" />
+                {[...types].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setIsMobileCategoryOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                      selectedCategory === cat 
+                        ? 'bg-[#3584e4] text-white font-bold' 
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    {selectedCategory === cat && <Check size={14} className="text-white" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Atalho Hoje */}
+          {selectedMonth !== currentMonthKey && (
+            <button
+              type="button"
+              onClick={() => setSelectedMonth(currentMonthKey)}
+              className="px-2 py-1 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 border border-black/10 dark:border-white/10 rounded-lg text-[11px] font-semibold shrink-0 cursor-pointer"
+            >
+              Hoje
+            </button>
+          )}
+
+          {/* Limpar filtros */}
+          {(selectedCategory !== 'Todas' || statusFilter !== 'all' || searchTerm.trim()) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory('Todas');
+                setStatusFilter('all');
+                setSearchTerm('');
+              }}
+              className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-lg text-[11px] font-medium shrink-0 flex items-center gap-1 cursor-pointer"
+            >
+              <X size={10} />
+              Limpar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Filter and Search Bar (>= md) */}
+      <div className="hidden md:flex bg-white dark:bg-white/[0.06] rounded-xl p-3 border border-black/10 dark:border-white/10 shadow-xs flex-col md:flex-row gap-2.5 items-center justify-between relative z-20">
         
         {/* Search */}
         <div className="relative w-full md:w-72">

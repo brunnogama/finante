@@ -69,6 +69,17 @@ export const Navigation: React.FC = () => {
           </>
         )}
       </NavLink>
+
+      <NavLink to="/expenses" className={getNavItemClass}>
+        {({ isActive }) => (
+          <>
+            <div className={`w-5 h-5 flex items-center justify-center shrink-0 ${getIconClass({ isActive })}`}>
+              <Receipt size={18} strokeWidth={1.8} />
+            </div>
+            <span className="text-xs md:text-sm hidden md:block">Despesas</span>
+          </>
+        )}
+      </NavLink>
       
       <NavLink to="/calendar" className={getNavItemClass}>
         {({ isActive }) => (
@@ -81,7 +92,7 @@ export const Navigation: React.FC = () => {
         )}
       </NavLink>
 
-      {/* Section Label: Lançamentos */}
+      {/* Section Label: Gestão */}
       <div className="hidden md:block px-3 pt-3 pb-1">
         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           Gestão
@@ -95,17 +106,6 @@ export const Navigation: React.FC = () => {
               <Wallet size={18} strokeWidth={1.8} />
             </div>
             <span className="text-xs md:text-sm hidden md:block">Receitas</span>
-          </>
-        )}
-      </NavLink>
-
-      <NavLink to="/expenses" className={getNavItemClass}>
-        {({ isActive }) => (
-          <>
-            <div className={`w-5 h-5 flex items-center justify-center shrink-0 ${getIconClass({ isActive })}`}>
-              <Receipt size={18} strokeWidth={1.8} />
-            </div>
-            <span className="text-xs md:text-sm hidden md:block">Despesas</span>
           </>
         )}
       </NavLink>
