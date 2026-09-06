@@ -22,8 +22,10 @@ import {
   Upload,
   X,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Bell
 } from 'lucide-react';
+import { notificationListenerService } from '../services/notifications';
 import { PinSetupModal } from '../components/PinSetupModal';
 import { ChangelogModal } from '../components/ChangelogModal';
 import { ManageCategoriesModal } from '../components/ManageCategoriesModal';
@@ -61,6 +63,24 @@ export const Settings: React.FC = () => {
   const [updateStatus, setUpdateStatus] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [notificationSupported, setNotificationSupported] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState(false);
+  const [isSimulatingNotification, setIsSimulatingNotification] = useState(false);
+
+  const checkNotificationStatus = async () => {
+    const supported = notificationListenerService.isSupported();
+    setNotificationSupported(supported);
+    if (supported) {
+      const granted = await notificationListenerService.checkPermission();
+      setNotificationPermission(granted);
+    }
+  };
+
+  useEffect(() => {
+    checkNotificationStatus();
+    window.addEventListener('focus', checkNotificationStatus);
+    return () => window.removeEventListener('focus', checkNotificationStatus);
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -277,6 +297,29 @@ export const Settings: React.FC = () => {
       setTimeout(() => setSyncStatus(null), 6000);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleRequestNotificationPermission = async () => {
+    await notificationListenerService.requestPermission();
+    setTimeout(() => {
+      checkNotificationStatus();
+    }, 1000);
+  };
+
+  const handleSimulateNotification = async () => {
+    setIsSimulatingNotification(true);
+    try {
+      await notificationListenerService.addSimulatedNotification({
+        packageName: 'com.nu.production',
+        title: 'Nubank',
+        text: 'Compra aprovada no Nubank de R$ 68,90 em Supermercado Pão de Açúcar no débito.'
+      });
+      window.dispatchEvent(new CustomEvent('finante_check_notifications'));
+    } catch (e) {
+      console.warn('Simulate error:', e);
+    } finally {
+      setTimeout(() => setIsSimulatingNotification(false), 800);
     }
   };
 
@@ -551,6 +594,78 @@ export const Settings: React.FC = () => {
             <span>{syncStatus}</span>
           </div>
         )}
+      </AdwPreferencesGroup>
+
+      {/* Section: Automação & Notificações Bancárias */}
+      <AdwPreferencesGroup title="Automação & Notificações Bancárias">
+        <AdwActionRow
+          title="Leitura de Notificações Bancárias"
+          subtitle={
+            notificationSupported
+              ? (notificationPermission
+                  ? 'Captura ativa para Nubank, Itaú, Santander, Inter, Bradesco, C6, Mercado Pago e outros'
+                  : 'Permissão necessária no Android para capturar compras e transferências em segundo plano')
+              : 'Disponível nativamente no app Android para importar despesas automaticamente'
+          }
+          prefix={
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+              <Bell size={18} strokeWidth={2.2} />
+            </div>
+          }
+          suffix={
+            notificationSupported ? (
+              notificationPermission ? (
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                    <CheckCircle2 size={12} />
+                    Ativo
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleRequestNotificationPermission(); }}
+                    className="adw-btn text-xs font-semibold px-2.5 py-1 cursor-pointer"
+                  >
+                    Ajustar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleRequestNotificationPermission(); }}
+                  className="adw-btn text-xs font-semibold px-3 py-1.5 cursor-pointer bg-primary-600 text-white hover:bg-primary-500 border-none shrink-0"
+                >
+                  Ativar no Android
+                </button>
+              )
+            ) : (
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                Nativo Android
+              </span>
+            )
+          }
+          onClick={notificationSupported ? handleRequestNotificationPermission : undefined}
+        />
+
+        <AdwActionRow
+          title="Testar Leitura de Notificação Bancária"
+          subtitle="Simula uma notificação do Nubank (R$ 68,90 no Pão de Açúcar) para testar a captura e confirmação rápida"
+          prefix={
+            <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+              <Sparkles size={18} strokeWidth={2.2} />
+            </div>
+          }
+          suffix={
+            <button
+              type="button"
+              disabled={isSimulatingNotification}
+              onClick={(e) => { e.stopPropagation(); handleSimulateNotification(); }}
+              className="adw-btn text-xs font-semibold px-3 py-1.5 cursor-pointer inline-flex items-center gap-1.5 shrink-0 disabled:opacity-60"
+            >
+              <span>{isSimulatingNotification ? 'Simulando...' : 'Simular Notificação'}</span>
+            </button>
+          }
+          onClick={handleSimulateNotification}
+        />
       </AdwPreferencesGroup>
 
       {/* Section 3: Sobre o Aplicativo */}

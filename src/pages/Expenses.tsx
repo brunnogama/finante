@@ -166,8 +166,14 @@ export const Expenses: React.FC = () => {
       })
       .subscribe();
 
+    const handleRefresh = () => {
+      loadExpensesOnly();
+    };
+    window.addEventListener('finante_refresh_expenses', handleRefresh);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('finante_refresh_expenses', handleRefresh);
     };
   }, []);
 

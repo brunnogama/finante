@@ -9,13 +9,39 @@ import { CalendarView } from './pages/CalendarView';
 import { Investments } from './pages/Investments';
 import { Settings } from './pages/Settings';
 import { LockScreen } from './components/LockScreen';
-import { notificationListenerService } from './services/notifications';
+import { notificationListenerService, type ParsedBankExpense } from './services/notifications';
+import { BankNotificationModal } from './components/BankNotificationModal';
 
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 
 function App() {
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [pendingBankExpenses, setPendingBankExpenses] = useState<ParsedBankExpense[]>([]);
+
+  const checkBankNotifications = async () => {
+    try {
+      let items: ParsedBankExpense[] = [];
+      if (notificationListenerService.isSupported()) {
+        const granted = await notificationListenerService.checkPermission();
+        if (granted) {
+          items = await notificationListenerService.fetchPendingNotifications(true);
+        }
+      } else {
+        items = await notificationListenerService.fetchWebSimulatedNotifications();
+      }
+
+      if (items && items.length > 0) {
+        setPendingBankExpenses(prev => {
+          const existingIds = new Set(prev.map(p => p.rawId));
+          const newItems = items.filter(it => !existingIds.has(it.rawId));
+          return [...prev, ...newItems];
+        });
+      }
+    } catch (err) {
+      console.warn('Falha ao checar notificações bancárias:', err);
+    }
+  };
 
   useEffect(() => {
     // Apple HIG Theme Management (Dark Mode)
@@ -33,26 +59,39 @@ function App() {
     const listener = () => applyTheme();
     mediaQuery.addEventListener('change', listener);
 
-    // Capacitor background lock (mobile only)
+    // Capacitor background lock & resume notification check (mobile only)
+    let appStateHandle: any = null;
     if (Capacitor.isNativePlatform()) {
       CapacitorApp.addListener('appStateChange', ({ isActive }: { isActive: boolean }) => {
         if (!isActive) {
           setIsUnlocked(false);
+        } else {
+          checkBankNotifications();
         }
+      }).then(handle => {
+        appStateHandle = handle;
       });
     }
 
+    const handleCustomCheck = () => {
+      checkBankNotifications();
+    };
+    window.addEventListener('finante_check_notifications', handleCustomCheck);
+
     return () => {
       mediaQuery.removeEventListener('change', listener);
+      window.removeEventListener('finante_check_notifications', handleCustomCheck);
+      if (appStateHandle) {
+        appStateHandle.remove?.();
+      }
     };
   }, []);
 
   const handleUnlock = () => {
     setIsUnlocked(true);
-    notificationListenerService.initialize();
-    notificationListenerService.simulateBankNotification((expense) => {
-      console.log('Despesa capturada pela notificação:', expense);
-    });
+    setTimeout(() => {
+      checkBankNotifications();
+    }, 400);
   };
 
   if (!isUnlocked) {
@@ -79,6 +118,17 @@ function App() {
             </Routes>
           </main>
         </div>
+
+        {/* Modal de Notificações Bancárias */}
+        {pendingBankExpenses.length > 0 && (
+          <BankNotificationModal
+            items={pendingBankExpenses}
+            onClose={() => setPendingBankExpenses([])}
+            onAdded={() => {
+              window.dispatchEvent(new CustomEvent('finante_refresh_expenses'));
+            }}
+          />
+        )}
       </div>
     </Router>
   );
